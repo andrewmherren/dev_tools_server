@@ -1,0 +1,122 @@
+version: "3.9"
+
+services:
+  # Ollama LLM service (step 2)
+  ollama:
+    # image: ollama/ollama:latest
+    build:
+      context: .
+      dockerfile: .devcontainer/Dockerfile.nvidia-ollama
+    container_name: ollama-server
+    ports:
+      - "11434:11434"
+    # Model storage: bind mount to path defined in .env (OLLAMA_STORAGE_PATH)
+    # Allows each dev to use their own dedicated drive without committing paths
+    # Models can be very large (GBs each), so use a drive with sufficient space
+    volumes:
+      - ${OLLAMA_STORAGE_PATH}:/root/.ollama
+    environment:
+      - OLLAMA_HOST=0.0.0.0:11434
+      - OLLAMA_ORIGINS=*
+    tty: true
+    stdin_open: true
+    networks:
+      - dev-network
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+
+  # Docs MCP server (shared documentation indexing service)
+  docs-mcp:
+    container_name: docs-mcp-server
+    build:
+      context: .
+      dockerfile: .devcontainer/Dockerfile.docs-mcp
+    depends_on:
+      - ollama
+    expose:
+      - "6280"
+    volumes:
+      - docs-mcp-data:/data
+    environment:
+      - OPENAI_API_BASE=http://ollama:11434/v1
+      - DOCS_MCP_EMBEDDING_MODEL=openai:nomic-embed-text
+      - OPENAI_API_KEY=dummy
+    tty: true
+    stdin_open: true
+    networks:
+      - dev-network
+
+  # Nginx reverse proxy (unified web interface for all tools)
+  nginx:
+    container_name: ai-dev-nginx
+    image: nginx:alpine
+    depends_on:
+      - docs-mcp
+      - ollama
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/html:/usr/share/nginx/html:ro
+      - nginx-ssl:/etc/nginx/ssl
+    networks:
+      - dev-network
+    restart: unless-stopped
+
+  # Human developer container (step 1 + step 2 integration)
+  dev:
+    container_name: ai-dev-human
+    build:
+      context: .
+      dockerfile: .devcontainer/Dockerfile
+    depends_on:
+      - ollama
+      - docs-mcp
+    volumes:
+      - ${PROJECT_ROOT_PATH:-../sandbox/my_project}:/workspace
+    working_dir: /workspace
+    environment:
+      - OLLAMA_BASE_URL=http://ollama:11434
+    tty: true
+    stdin_open: true
+    networks:
+      - dev-network
+
+  # Example agent container (git worktree setup from step 1)
+  # To use: git worktree add ../sandbox/my_project-agent-1 -b agent-1
+  # Then: docker compose up -d agent-1
+  agent-1:
+    container_name: ai-dev-agent-1
+    build:
+      context: .
+      dockerfile: .devcontainer/Dockerfile
+    depends_on:
+      - ollama
+      - docs-mcp
+    volumes:
+      - ${AGENT_1_PATH:-../sandbox/my_project-agent-1}:/workspace
+    working_dir: /workspace
+    environment:
+      - OLLAMA_BASE_URL=http://ollama:11434
+    tty: true
+    stdin_open: true
+    networks:
+      - dev-network
+    profiles:
+      - agents
+
+networks:
+  dev-network:
+    driver: bridge
+
+volumes:
+  docs-mcp-data:
+    driver: local
+  nginx-ssl:
+    driver: local

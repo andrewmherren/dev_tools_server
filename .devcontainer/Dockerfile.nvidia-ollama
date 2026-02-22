@@ -1,0 +1,14 @@
+FROM ollama/ollama:latest
+
+# Switch to root to install GPU tools
+USER root
+
+# Install NVIDIA utilities (for nvidia-smi)
+RUN apt-get update && \
+    apt-get install -y nvidia-utils-525 nvidia-cuda-toolkit && \
+    rm -rf /var/lib/apt/lists/*
+
+# Expose Ollama port
+EXPOSE 11434
+
+# Don't override entrypoint — let base image handle starting Ollama

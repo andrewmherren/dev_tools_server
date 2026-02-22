@@ -1,0 +1,28 @@
+FROM node:22-slim
+
+# Install docs-mcp-server globally
+RUN npm install -g @arabold/docs-mcp-server
+
+# Create data directory for persistence
+RUN mkdir -p /data && chmod 755 /data
+
+# Set working directory
+WORKDIR /app
+
+# docs-mcp-server reads from /data directory by default
+ENV DOCS_MCP_DATA_DIR=/data
+
+# Default to Ollama for embeddings if no other provider specified
+# Users can override OPENAI_API_KEY in .env for other providers
+ENV OPENAI_API_BASE=http://ollama:11434/v1
+ENV DOCS_MCP_EMBEDDING_MODEL=llama2
+ENV OPENAI_API_KEY=dummy
+
+# Expose ports
+# 6280: MCP SSE endpoint
+# 6281: Web UI
+EXPOSE 6280 6281
+
+# Default command: run MCP server on port 6280
+# Use the package default entrypoint as documented by the project
+CMD ["npx", "-y", "@arabold/docs-mcp-server@latest", "--protocol", "http", "--host", "0.0.0.0", "--port", "6280"]
