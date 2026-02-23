@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Environment Manager - Dev Environment</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 2rem;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            background: white;
+            border-radius: 16px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+
+        .header h1 {
+            font-size: 2rem;
+            color: #2d3748;
+            margin-bottom: 0.5rem;
+        }
+
+        .header p {
+            color: #718096;
+            font-size: 1.1rem;
+        }
+
+        .back-link {
+            display: inline-block;
+            color: #667eea;
+            text-decoration: none;
+            margin-bottom: 1rem;
+            font-weight: 500;
+        }
+
+        .back-link:hover {
+            text-decoration: underline;
+        }
+
+        .status-card {
+            background: white;
+            border-radius: 16px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+
+        .status-card h2 {
+            color: #2d3748;
+            margin-bottom: 1rem;
+            font-size: 1.5rem;
+        }
+
+        .status-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem;
+            background: #f7fafc;
+            border-radius: 8px;
+            margin-bottom: 0.75rem;
+        }
+
+        .status-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .status-label {
+            font-weight: 500;
+            color: #4a5568;
+        }
+
+        .status-value {
+            font-family: 'Courier New', monospace;
+            color: #2d3748;
+            background: #e2e8f0;
+            padding: 0.25rem 0.75rem;
+            border-radius: 4px;
+        }
+
+        .status-value.healthy {
+            background: #c6f6d5;
+            color: #22543d;
+        }
+
+        .status-value.error {
+            background: #fed7d7;
+            color: #742a2a;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 2rem;
+            color: #718096;
+        }
+
+        .spinner {
+            border: 3px solid #e2e8f0;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        .endpoints-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1rem;
+        }
+
+        .endpoint-card {
+            background: #f7fafc;
+            padding: 1rem;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+        }
+
+        .endpoint-card h3 {
+            color: #2d3748;
+            font-size: 1.1rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .endpoint-card code {
+            background: #e2e8f0;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            color: #2d3748;
+            display: block;
+            margin-top: 0.5rem;
+            word-break: break-all;
+        }
+
+        .endpoint-card p {
+            color: #4a5568;
+            font-size: 0.9rem;
+            margin-top: 0.5rem;
+        }
+
+        .info-box {
+            background: #ebf4ff;
+            border-left: 4px solid #4299e1;
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+        }
+
+        .info-box p {
+            color: #2c5282;
+            line-height: 1.6;
+        }
+
+        .info-box strong {
+            color: #1a365d;
+        }
+
+        .refresh-button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .refresh-button:hover {
+            background: #5a67d8;
+        }
+
+        .refresh-button:active {
+            transform: scale(0.98);
+        }
+
+        .error-message {
+            background: #fed7d7;
+            border-left: 4px solid #fc8181;
+            padding: 1rem;
+            border-radius: 8px;
+            color: #742a2a;
+        }
+
+        .endpoint-link {
+            display: inline-block;
+            margin-top: 0.75rem;
+            background: #667eea;
+            color: white;
+            text-decoration: none;
+            padding: 0.4rem 0.75rem;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+
+        .endpoint-link:hover {
+            background: #5a67d8;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="header">
+            <a href="/" class="back-link">← Back to Dashboard</a>
+            <h1>🔧 Environment Manager</h1>
+            <p>Manage development projects, agents, and container orchestration</p>
+        </div>
+
+        <div class="status-card">
+            <h2>Service Status</h2>
+            <div id="status-content">
+                <div class="loading">
+                    <div class="spinner"></div>
+                    <p>Checking env-manager status...</p>
+                </div>
+            </div>
+            <button class="refresh-button" onclick="loadStatus()" style="margin-top: 1rem;">Refresh Status</button>
+        </div>
+
+        <div class="status-card">
+            <h2>Available Endpoints</h2>
+
+            <div class="info-box">
+                <p><strong>MCP Integration:</strong> The env-manager MCP server is available via Stdio transport.
+                    Configure your Copilot client to connect via <code
+                        style="background: #d6f5ff; color: #0a3e5c; padding: 0.1rem 0.3rem; border-radius: 2px;">docker exec</code>
+                    and manage projects through natural language.</p>
+            </div>
+
+            <div class="endpoints-grid">
+                <div class="endpoint-card">
+                    <h3>Health Check</h3>
+                    <code>GET http://localhost/env-manager/health</code>
+                    <p>Quick service health verification</p>
+                </div>
+
+                <div class="endpoint-card">
+                    <h3>MCP Stdio (VS Code)</h3>
+                    <code>docker exec -i env-manager node dist/stdio.js</code>
+                    <p>Recommended for VS Code Copilot integration</p>
+                </div>
+
+                <div class="endpoint-card">
+                    <h3>HTTP Health Check</h3>
+                    <code>http://localhost/env-manager/health</code>
+                    <p>Service health status endpoint</p>
+                </div>
+
+                <div class="endpoint-card">
+                    <h3>Web Proxy</h3>
+                    <code>http://localhost/env-manager/</code>
+                    <p>Proxied through nginx (this page)</p>
+                </div>
+
+                <div class="endpoint-card">
+                    <h3>Interactive API Explorer</h3>
+                    <code>http://localhost/env-manager/api/docs</code>
+                    <p>Swagger UI for REST endpoints</p>
+                    <a class="endpoint-link" href="/env-manager/api/docs" target="_blank" rel="noopener">Open Swagger UI</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="status-card">
+            <h2>Usage Instructions</h2>
+
+            <div style="margin-top: 1rem;">
+                <h3 style="color: #2d3748; margin-bottom: 0.75rem; font-size: 1.1rem;">Configure Copilot</h3>
+                <p style="color: #4a5568; margin-bottom: 0.5rem;">Add to your <code
+                        style="background: #e2e8f0; padding: 0.2rem 0.5rem; border-radius: 4px;">.vscode/mcp.json</code>:
+                </p>
+                <pre
+                    style="background: #2d3748; color: #e2e8f0; padding: 1rem; border-radius: 8px; overflow-x: auto; margin-top: 0.5rem;">
+{
+  "servers": {
+    "env-manager": {
+      "command": "docker",
+      "args": ["exec", "-i", "env-manager", "node", "dist/stdio.js"]
+    }
+  }
+}</pre>
+            </div>
+
+            <div style="margin-top: 1.5rem;">
+                <h3 style="color: #2d3748; margin-bottom: 0.75rem; font-size: 1.1rem;">Example Commands</h3>
+                <ul style="list-style: none; padding-left: 0;">
+                    <li style="padding: 0.5rem; background: #f7fafc; border-radius: 6px; margin-bottom: 0.5rem;">
+                        <code>📝 "Create a new project called my-app"</code>
+                    </li>
+                    <li style="padding: 0.5rem; background: #f7fafc; border-radius: 6px; margin-bottom: 0.5rem;">
+                        <code>📋 "List all projects"</code>
+                    </li>
+                    <li style="padding: 0.5rem; background: #f7fafc; border-radius: 6px; margin-bottom: 0.5rem;">
+                        <code>▶️ "Start project my-app"</code>
+                    </li>
+                    <li style="padding: 0.5rem; background: #f7fafc; border-radius: 6px; margin-bottom: 0.5rem;">
+                        <code>🤖 "Add agent called worker-1 to my-app"</code>
+                    </li>
+                    <li style="padding: 0.5rem; background: #f7fafc; border-radius: 6px; margin-bottom: 0.5rem;">
+                        <code>📊 "Show status of all projects"</code>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        async function loadStatus() {
+            const statusContent = document.getElementById('status-content');
+
+            // Show loading
+            statusContent.innerHTML = `
+                <div class="loading">
+                    <div class="spinner"></div>
+                    <p>Checking env-manager status...</p>
+                </div>
+            `;
+
+            try {
+                // Try to fetch health status
+                const response = await fetch('/env-manager/health');
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+
+                const data = await response.json();
+
+                // Display status
+                statusContent.innerHTML = `
+                    <div class="status-item">
+                        <span class="status-label">Service Status</span>
+                        <span class="status-value healthy">${data.status || 'ok'}</span>
+                    </div>
+                    <div class="status-item">
+                        <span class="status-label">Service Name</span>
+                        <span class="status-value">${data.service || 'env-manager'}</span>
+                    </div>
+                    <div class="status-item">
+                        <span class="status-label">Version</span>
+                        <span class="status-value">${data.version || 'unknown'}</span>
+                    </div>
+                `;
+            } catch (error) {
+                // Show error
+                statusContent.innerHTML = `
+                    <div class="error-message">
+                        <strong>Failed to connect to env-manager</strong>
+                        <p style="margin-top: 0.5rem;">Error: ${error.message}</p>
+                        <p style="margin-top: 0.5rem;">Make sure the env-manager container is running:
+                            <code style="display: block; margin-top: 0.25rem; background: #742a2a; color: #fed7d7; padding: 0.5rem; border-radius: 4px;">docker compose up -d env-manager</code>
+                        </p>
+                    </div>
+                `;
+            }
+        }
+
+        // Load status on page load
+        loadStatus();
+
+        // Auto-refresh every 30 seconds
+        setInterval(loadStatus, 30000);
+    </script>
+</body>
+
+</html>

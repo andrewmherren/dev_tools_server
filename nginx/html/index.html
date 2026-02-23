@@ -161,6 +161,14 @@
                 </p>
                 <span class="status">✓ Running</span>
             </a>
+
+            <a href="/env-manager/" class="tool-card"
+                style="background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);">
+                <h2>🔧 Environment Manager</h2>
+                <p>Orchestrate development projects, agents, and containers through natural language commands via MCP.
+                </p>
+                <span class="status">✓ Running</span>
+            </a>
         </div>
 
         <div class="info-section">
@@ -168,17 +176,24 @@
             <p><strong>Indexing Documentation:</strong> Navigate to <a href="/docs-mcp/" style="color: #667eea;">Docs
                     MCP</a> and click "Queue New Scrape Job" to index any documentation site.</p>
             <p><strong>MCP Integration:</strong> All containers have access to these services via the
-                <code>dev-network</code>. Configuration is in <code>.vscode/mcp.json</code>.</p>
+                <code>dev-network</code>. Configuration is in <code>.vscode/mcp.json</code>.
+            </p>
             <p><strong>Adding Services:</strong> Update <code>docker-compose.yml</code> and
-                <code>nginx/nginx.conf</code> to add new tool UIs.</p>
+                <code>nginx/nginx.conf</code> to add new tool UIs.
+            </p>
         </div>
 
         <div class="info-section">
             <h3>🔧 Service Endpoints</h3>
             <p><strong>Docs MCP SSE:</strong> <code>http://docs-mcp:6280/sse</code> (internal) or
-                <code>http://localhost/docs-mcp/sse</code> (host)</p>
+                <code>http://localhost/docs-mcp/sse</code> (host)
+            </p>
             <p><strong>Ollama API:</strong> <code>http://ollama:11434</code> (internal) or
-                <code>http://localhost/ollama</code> (host)</p>
+                <code>http://localhost/ollama</code> (host)
+            </p>
+            <p><strong>env-manager SSE:</strong> <code>http://env-manager:7272/sse</code> (internal) or
+                <code>http://localhost:7272/sse</code> (host)
+            </p>
         </div>
 
         <div class="footer">

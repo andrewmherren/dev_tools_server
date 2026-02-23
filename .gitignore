@@ -58,3 +58,5 @@ __pycache__/
 *.pyc
 .pytest_cache/
 LOCAL_*
+mcp-servers/env-manager/coverage/
+mcp-servers/env-manager/dist/
