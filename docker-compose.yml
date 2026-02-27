@@ -39,30 +39,12 @@ services:
     stdin_open: true
     networks:
       - dev-network
-  env-manager:
-    container_name: env-manager
-    build:
-      context: .
-      dockerfile: .devcontainer/Dockerfile.env-manager
-    volumes:
-      - ./:/dev_environment
-      - ../sandbox:/sandbox
-      - /var/run/docker.sock:/var/run/docker.sock
-    environment:
-      - DEV_ENVIRONMENT_ROOT=/dev_environment
-      - SANDBOX_ROOT=/sandbox
-      - LOG_LEVEL=info
-    tty: true
-    stdin_open: true
-    networks:
-      - dev-network
   nginx:
     container_name: ai-dev-nginx
     image: nginx:alpine
     depends_on:
       - docs-mcp
       - ollama
-      - env-manager
       - sonarqube
     ports:
       - 80:80
