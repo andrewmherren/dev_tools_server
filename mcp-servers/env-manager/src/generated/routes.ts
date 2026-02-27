@@ -21,6 +21,16 @@ const models: TsoaRoute.Models = {
         "additionalProperties": true,
     },
     // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "ActionResponse": {
+        "dataType": "refObject",
+        "properties": {
+            "status": {"dataType":"union","subSchemas":[{"dataType":"enum","enums":["preview"]},{"dataType":"enum","enums":["success"]},{"dataType":"enum","enums":["error"]}],"required":true},
+            "message": {"dataType":"string","required":true},
+            "toolOutput": {"ref":"ToolResponse"},
+        },
+        "additionalProperties": true,
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
     "ApiResponse": {
         "dataType": "refObject",
         "properties": {
@@ -44,6 +54,39 @@ const models: TsoaRoute.Models = {
             "image": {"dataType":"string"},
             "envVars": {"ref":"Record_string.string_"},
             "confirm": {"dataType":"boolean"},
+        },
+        "additionalProperties": true,
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "AgentInfo": {
+        "dataType": "refObject",
+        "properties": {
+            "name": {"dataType":"string","required":true},
+            "service": {"dataType":"string","required":true},
+            "container": {"dataType":"string","required":true},
+            "status": {"dataType":"string","required":true},
+        },
+        "additionalProperties": true,
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "ProjectInfo": {
+        "dataType": "refObject",
+        "properties": {
+            "name": {"dataType":"string","required":true},
+            "path": {"dataType":"string","required":true},
+            "service": {"dataType":"string","required":true},
+            "status": {"dataType":"string","required":true},
+            "human_container": {"dataType":"string"},
+            "agents": {"dataType":"array","array":{"dataType":"refObject","ref":"AgentInfo"},"required":true},
+        },
+        "additionalProperties": true,
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "ListProjectsResponse": {
+        "dataType": "refObject",
+        "properties": {
+            "count": {"dataType":"double","required":true},
+            "projects": {"dataType":"array","array":{"dataType":"refObject","ref":"ProjectInfo"},"required":true},
         },
         "additionalProperties": true,
     },

@@ -2,12 +2,44 @@ import { readFile, writeFile, access } from 'fs/promises';
 import { constants } from 'fs';
 import { logger } from './logger.js';
 
+type ParsedEnvLine =
+    | { kind: 'skip' }
+    | { kind: 'invalid'; line: string }
+    | { kind: 'entry'; key: string; value: string };
+
+const stripOuterQuotes = (value: string): string => {
+    if ((value.startsWith('"') && value.endsWith('"')) ||
+        (value.startsWith("'") && value.endsWith("'"))) {
+        return value.substring(1, value.length - 1);
+    }
+
+    return value;
+};
+
+const parseEnvLine = (line: string): ParsedEnvLine => {
+    const trimmed = line.trim();
+
+    if (!trimmed || trimmed.startsWith('#')) {
+        return { kind: 'skip' };
+    }
+
+    const equalIndex = trimmed.indexOf('=');
+    if (equalIndex === -1) {
+        return { kind: 'invalid', line: trimmed };
+    }
+
+    const key = trimmed.substring(0, equalIndex).trim();
+    const rawValue = trimmed.substring(equalIndex + 1).trim();
+
+    return { kind: 'entry', key, value: stripOuterQuotes(rawValue) };
+};
+
 /**
  * EnvManager handles reading and writing .env files
  * with proper formatting and validation
  */
 export class EnvManager {
-    private filePath: string;
+    private readonly filePath: string;
 
     constructor(filePath: string) {
         this.filePath = filePath;
@@ -27,30 +59,18 @@ export class EnvManager {
             // Parse line by line
             const lines = content.split('\n');
             for (const line of lines) {
-                const trimmed = line.trim();
+                const parsed = parseEnvLine(line);
 
-                // Skip empty lines and comments
-                if (!trimmed || trimmed.startsWith('#')) {
+                if (parsed.kind === 'skip') {
                     continue;
                 }
 
-                // Parse KEY=VALUE
-                const equalIndex = trimmed.indexOf('=');
-                if (equalIndex === -1) {
-                    logger.warn('Skipping invalid .env line', { line: trimmed });
+                if (parsed.kind === 'invalid') {
+                    logger.warn('Skipping invalid .env line', { line: parsed.line });
                     continue;
                 }
 
-                const key = trimmed.substring(0, equalIndex).trim();
-                let value = trimmed.substring(equalIndex + 1).trim();
-
-                // Remove quotes if present
-                if ((value.startsWith('"') && value.endsWith('"')) ||
-                    (value.startsWith("'") && value.endsWith("'"))) {
-                    value = value.substring(1, value.length - 1);
-                }
-
-                env[key] = value;
+                env[parsed.key] = parsed.value;
             }
 
             logger.debug('Parsed .env file', {
@@ -85,7 +105,7 @@ export class EnvManager {
             ];
 
             // Sort keys alphabetically for consistency
-            const sortedKeys = Object.keys(env).sort();
+            const sortedKeys = Object.keys(env).sort((a, b) => a.localeCompare(b));
 
             for (const key of sortedKeys) {
                 const value = env[key];

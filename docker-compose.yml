@@ -63,6 +63,7 @@ services:
       - docs-mcp
       - ollama
       - env-manager
+      - sonarqube
     ports:
       - 80:80
       - 443:443
@@ -86,6 +87,37 @@ services:
     tty: true
     stdin_open: true
     command: /bin/bash
+  sonarqube-db:
+    container_name: sonarqube-postgres
+    image: postgres:15-alpine
+    environment:
+      - POSTGRES_USER=sonar
+      - POSTGRES_PASSWORD=sonar
+      - POSTGRES_DB=sonarqube
+    volumes:
+      - ${SONARQUBE_STORAGE_PATH}/postgres:/var/lib/postgresql/data
+    networks:
+      - dev-network
+    restart: unless-stopped
+  sonarqube:
+    container_name: sonarqube-server
+    image: sonarqube:community
+    depends_on:
+      - sonarqube-db
+    environment:
+      - SONAR_JDBC_URL=jdbc:postgresql://sonarqube-db:5432/sonarqube
+      - SONAR_JDBC_USERNAME=sonar
+      - SONAR_JDBC_PASSWORD=sonar
+      - SONAR_WEB_CONTEXT=/sonarqube
+    volumes:
+      - ${SONARQUBE_STORAGE_PATH}/data:/opt/sonarqube/data
+      - ${SONARQUBE_STORAGE_PATH}/extensions:/opt/sonarqube/extensions
+      - ${SONARQUBE_STORAGE_PATH}/logs:/opt/sonarqube/logs
+    ports:
+      - 9000:9000
+    networks:
+      - dev-network
+    restart: unless-stopped
 networks:
   dev-network:
     driver: bridge

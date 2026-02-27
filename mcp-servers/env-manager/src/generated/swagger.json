@@ -37,6 +37,30 @@
 				"type": "object",
 				"additionalProperties": true
 			},
+			"ActionResponse": {
+				"properties": {
+					"status": {
+						"type": "string",
+						"enum": [
+							"preview",
+							"success",
+							"error"
+						]
+					},
+					"message": {
+						"type": "string"
+					},
+					"toolOutput": {
+						"$ref": "#/components/schemas/ToolResponse"
+					}
+				},
+				"required": [
+					"status",
+					"message"
+				],
+				"type": "object",
+				"additionalProperties": true
+			},
 			"ApiResponse": {
 				"properties": {
 					"success": {
@@ -66,19 +90,24 @@
 			"CreateProjectRequest": {
 				"properties": {
 					"name": {
-						"type": "string"
+						"type": "string",
+						"description": "Project name (lowercase letters, numbers, hyphens, underscores).\r\nExample: \"my-app\""
 					},
 					"gitUrl": {
-						"type": "string"
+						"type": "string",
+						"description": "Optional Git repository URL to clone.\r\nExample: \"https://github.com/org/repo.git\""
 					},
 					"image": {
-						"type": "string"
+						"type": "string",
+						"description": "Docker image to use for the project container.\r\nExample: \"ubuntu:22.04\""
 					},
 					"envVars": {
-						"$ref": "#/components/schemas/Record_string.string_"
+						"$ref": "#/components/schemas/Record_string.string_",
+						"description": "Environment variables to write into the project's .env file.\r\nExample: { \"NODE_ENV\": \"development\" }"
 					},
 					"confirm": {
-						"type": "boolean"
+						"type": "boolean",
+						"description": "When true, applies changes. When false or omitted, returns a preview only."
 					}
 				},
 				"required": [
@@ -87,13 +116,93 @@
 				"type": "object",
 				"additionalProperties": true
 			},
-			"DeleteProjectRequest": {
+			"AgentInfo": {
 				"properties": {
 					"name": {
 						"type": "string"
 					},
+					"service": {
+						"type": "string"
+					},
+					"container": {
+						"type": "string"
+					},
+					"status": {
+						"type": "string"
+					}
+				},
+				"required": [
+					"name",
+					"service",
+					"container",
+					"status"
+				],
+				"type": "object",
+				"additionalProperties": true
+			},
+			"ProjectInfo": {
+				"properties": {
+					"name": {
+						"type": "string"
+					},
+					"path": {
+						"type": "string"
+					},
+					"service": {
+						"type": "string"
+					},
+					"status": {
+						"type": "string"
+					},
+					"human_container": {
+						"type": "string"
+					},
+					"agents": {
+						"items": {
+							"$ref": "#/components/schemas/AgentInfo"
+						},
+						"type": "array"
+					}
+				},
+				"required": [
+					"name",
+					"path",
+					"service",
+					"status",
+					"agents"
+				],
+				"type": "object",
+				"additionalProperties": true
+			},
+			"ListProjectsResponse": {
+				"properties": {
+					"count": {
+						"type": "number",
+						"format": "double"
+					},
+					"projects": {
+						"items": {
+							"$ref": "#/components/schemas/ProjectInfo"
+						},
+						"type": "array"
+					}
+				},
+				"required": [
+					"count",
+					"projects"
+				],
+				"type": "object",
+				"additionalProperties": true
+			},
+			"DeleteProjectRequest": {
+				"properties": {
+					"name": {
+						"type": "string",
+						"description": "Project name to unregister.\r\nExample: \"my-app\""
+					},
 					"confirm": {
-						"type": "boolean"
+						"type": "boolean",
+						"description": "When true, applies changes. When false or omitted, returns a preview only."
 					}
 				},
 				"required": [
@@ -124,30 +233,7 @@
 						"content": {
 							"application/json": {
 								"schema": {
-									"anyOf": [
-										{
-											"properties": {
-												"preview": {
-													"$ref": "#/components/schemas/ToolResponse"
-												}
-											},
-											"required": [
-												"preview"
-											],
-											"type": "object"
-										},
-										{
-											"properties": {
-												"success": {
-													"$ref": "#/components/schemas/ToolResponse"
-												}
-											},
-											"required": [
-												"success"
-											],
-											"type": "object"
-										}
-									]
+									"$ref": "#/components/schemas/ActionResponse"
 								}
 							}
 						}
@@ -185,13 +271,38 @@
 						"content": {
 							"application/json": {
 								"schema": {
+									"anyOf": [
+										{
+											"$ref": "#/components/schemas/ListProjectsResponse"
+										},
+										{
+											"properties": {
+												"error": {
+													"type": "string"
+												}
+											},
+											"required": [
+												"error"
+											],
+											"type": "object"
+										}
+									]
+								}
+							}
+						}
+					},
+					"400": {
+						"description": "Failed to list projects",
+						"content": {
+							"application/json": {
+								"schema": {
 									"properties": {
-										"projects": {
-											"$ref": "#/components/schemas/ToolResponse"
+										"error": {
+											"type": "string"
 										}
 									},
 									"required": [
-										"projects"
+										"error"
 									],
 									"type": "object"
 								}
@@ -213,30 +324,7 @@
 						"content": {
 							"application/json": {
 								"schema": {
-									"anyOf": [
-										{
-											"properties": {
-												"preview": {
-													"$ref": "#/components/schemas/ToolResponse"
-												}
-											},
-											"required": [
-												"preview"
-											],
-											"type": "object"
-										},
-										{
-											"properties": {
-												"success": {
-													"$ref": "#/components/schemas/ToolResponse"
-												}
-											},
-											"required": [
-												"success"
-											],
-											"type": "object"
-										}
-									]
+									"$ref": "#/components/schemas/ActionResponse"
 								}
 							}
 						}

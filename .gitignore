@@ -60,3 +60,4 @@ __pycache__/
 LOCAL_*
 mcp-servers/env-manager/coverage/
 mcp-servers/env-manager/dist/
+mcp-servers/env-manager/.scannerwork/

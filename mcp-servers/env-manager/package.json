@@ -13,8 +13,10 @@
         "start": "node dist/index.js",
         "test": "vitest run",
         "test:watch": "vitest",
-        "test:coverage": "vitest run --coverage"
+        "test:coverage": "vitest run --coverage",
+        "sonar": "npm run test:coverage && sonar -Dsonar.host.url=http://localhost/sonarqube -Dsonar.token=$SONARQUBE_TOKEN -Dsonar.projectKey=env_manager -Dsonar.sources=src -Dsonar.inclusions=src/**/*.ts -Dsonar.exclusions=src/generated/**,**/*.config.ts -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info -Dsonar.tests=tests -Dsonar.test.inclusions=tests/**/*"
     },
+    "_sonar-note": "Run in PowerShell: Set-Location D:\\sandbox\\dev_environment\\mcp-servers\\env-manager; $env:SONARQUBE_TOKEN='YOUR_TOKEN_HERE'; npm run sonar",
     "keywords": [
         "mcp",
         "docker",
