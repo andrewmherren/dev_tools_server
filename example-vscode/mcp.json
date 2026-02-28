@@ -36,7 +36,7 @@
                 "sonarqube-mcp-server"
             ],
             "env": {
-                "SONARQUBE_URL": "http://http://localhost/sonarqube",
+                "SONARQUBE_URL": "http://localhost/sonarqube",
                 "SONARQUBE_TOKEN": "${SONARQUBE_TOKEN}"
             }
         },

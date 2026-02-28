@@ -1,10 +1,25 @@
 version: "3.9"
+
+networks:
+  dev-network:
+    driver: bridge
+  internal-network:
+    driver: bridge
+    internal: true
+
+volumes:
+  docs-mcp-data:
+    driver: local
+  nginx-ssl:
+    driver: local
+
 services:
   ollama:
     build:
       context: .
       dockerfile: .devcontainer/Dockerfile.nvidia-ollama
     container_name: ollama-server
+    profiles: [human, agent-dev, agent-qa]
     volumes:
       - ${OLLAMA_STORAGE_PATH}:/root/.ollama
     environment:
@@ -13,20 +28,29 @@ services:
     tty: true
     stdin_open: true
     networks:
-      - dev-network
+      - internal-network
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
     deploy:
       resources:
+        limits:
+          memory: 8g
         reservations:
           devices:
             - driver: nvidia
               count: 1
               capabilities:
                 - gpu
+    restart: unless-stopped
+
   docs-mcp:
     container_name: docs-mcp-server
     build:
       context: .
       dockerfile: .devcontainer/Dockerfile.docs-mcp
+    profiles: [human, agent-dev, agent-qa]
     depends_on:
       - ollama
     volumes:
@@ -38,40 +62,51 @@ services:
     tty: true
     stdin_open: true
     networks:
-      - dev-network
+      - internal-network
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    deploy:
+      resources:
+        limits:
+          memory: 512m
+    restart: unless-stopped
+
   nginx:
     container_name: ai-dev-nginx
-    image: nginx:alpine
+    image: nginx:1.27-alpine
+    profiles: [human, agent-dev, agent-qa]
     depends_on:
       - docs-mcp
       - ollama
       - sonarqube
     ports:
-      - 80:80
-      - 443:443
+      - 127.0.0.1:80:80
+      - 127.0.0.1:443:443
     volumes:
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
       - ./nginx/html:/usr/share/nginx/html:ro
       - nginx-ssl:/etc/nginx/ssl
     networks:
       - dev-network
+      - internal-network
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - NET_BIND_SERVICE
+    deploy:
+      resources:
+        limits:
+          memory: 128m
     restart: unless-stopped
-  web_ui_demo-human:
-    container_name: web_ui_demo-human
-    image: ubuntu:22.04
-    volumes:
-      - /sandbox/web_ui_demo:/workspace
-    env_file:
-      - ./../sandbox/web_ui_demo/.env
-    working_dir: /workspace
-    networks:
-      - dev-network
-    tty: true
-    stdin_open: true
-    command: /bin/bash
+
   sonarqube-db:
     container_name: sonarqube-postgres
     image: postgres:15-alpine
+    profiles: [human, agent-dev, agent-qa]
     environment:
       - POSTGRES_USER=sonar
       - POSTGRES_PASSWORD=sonar
@@ -79,11 +114,21 @@ services:
     volumes:
       - ${SONARQUBE_STORAGE_PATH}/postgres:/var/lib/postgresql/data
     networks:
-      - dev-network
+      - internal-network
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    deploy:
+      resources:
+        limits:
+          memory: 512m
     restart: unless-stopped
+
   sonarqube:
     container_name: sonarqube-server
     image: sonarqube:community
+    profiles: [human, agent-dev, agent-qa]
     depends_on:
       - sonarqube-db
     environment:
@@ -95,16 +140,77 @@ services:
       - ${SONARQUBE_STORAGE_PATH}/data:/opt/sonarqube/data
       - ${SONARQUBE_STORAGE_PATH}/extensions:/opt/sonarqube/extensions
       - ${SONARQUBE_STORAGE_PATH}/logs:/opt/sonarqube/logs
-    ports:
-      - 9000:9000
+    networks:
+      - internal-network
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    deploy:
+      resources:
+        limits:
+          memory: 2g
+    restart: unless-stopped
+
+  web_ui_demo-human:
+    container_name: web_ui_demo-human
+    image: ubuntu:22.04
+    profiles: [human]
+    volumes:
+      - /sandbox/web_ui_demo:/workspace
+    env_file:
+      - ./../sandbox/web_ui_demo/.env
+    working_dir: /workspace
     networks:
       - dev-network
-    restart: unless-stopped
-networks:
-  dev-network:
-    driver: bridge
-volumes:
-  docs-mcp-data:
-    driver: local
-  nginx-ssl:
-    driver: local
+    tty: true
+    stdin_open: true
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    command: /bin/bash
+
+  agent-dev:
+    container_name: agent-dev-${WORKTREE_NAME:-default}
+    image: ubuntu:22.04
+    profiles: [agent-dev]
+    volumes:
+      - ${AGENT_WORKSPACE_PATH:-../sandbox}:/workspace
+    working_dir: /workspace
+    networks:
+      - dev-network
+      - internal-network
+    tty: true
+    stdin_open: true
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    deploy:
+      resources:
+        limits:
+          memory: 1g
+    command: /bin/bash
+
+  agent-qa:
+    container_name: agent-qa-${WORKTREE_NAME:-default}
+    image: ubuntu:22.04
+    profiles: [agent-qa]
+    volumes:
+      - ${AGENT_WORKSPACE_PATH:-../sandbox}:/workspace:ro
+    working_dir: /workspace
+    networks:
+      - dev-network
+      - internal-network
+    tty: true
+    stdin_open: true
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    deploy:
+      resources:
+        limits:
+          memory: 1g
+    command: /bin/bash
