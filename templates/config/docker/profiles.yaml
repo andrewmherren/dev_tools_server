@@ -1,0 +1,21 @@
+# Docker Compose Profile Definitions
+version: "1"
+profiles:
+  human:
+    description: "Full stack for human developer (all shared services)"
+    services: [ollama, docs-mcp, nginx, sonarqube-db, sonarqube]
+
+  agent-dev:
+    description: "Development agent (isolated container, read-write workspace)"
+    services: [ollama, docs-mcp, nginx, sonarqube-db, sonarqube, agent-dev]
+    notes:
+      - "Agent has read-write access to workspace"
+      - "No SSH keys mounted"
+      - "No remote git push by default"
+
+  agent-qa:
+    description: "QA agent (isolated container, read-only workspace)"
+    services: [ollama, docs-mcp, nginx, sonarqube-db, sonarqube, agent-qa]
+    notes:
+      - "Agent has read-only workspace access"
+      - "Can access SonarQube for static analysis"

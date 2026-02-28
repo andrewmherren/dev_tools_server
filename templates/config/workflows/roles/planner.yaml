@@ -1,0 +1,17 @@
+role: planner
+description: "Reads feature brief, produces structured plan with tasks and acceptance criteria"
+profile: agent-dev
+mcp_profile: standard
+required_inputs:
+  - name: feature_brief
+    source: docs/features/<feature-id>.yaml
+outputs:
+  - name: plan.md
+    path: docs/features/<feature-id>/plan.md
+instructions: |
+  You are the Planner agent. Read the feature brief and produce a detailed plan.md that includes:
+  - Problem statement
+  - Proposed approach
+  - Task breakdown (checkboxes)
+  - Acceptance criteria
+  - Risks and mitigations

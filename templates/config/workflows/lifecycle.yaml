@@ -1,0 +1,44 @@
+# Multi-agent handoff lifecycle
+version: "1"
+stages:
+  - name: planner
+    role: planner
+    required_artifacts: [feature_brief]
+    produces: [plan.md]
+    on_success: architect
+    on_failure: null
+
+  - name: architect
+    role: architect
+    required_artifacts: [plan.md]
+    produces: [architecture.md]
+    on_success: developer
+    on_failure: null
+
+  - name: developer
+    role: developer
+    required_artifacts: [architecture.md]
+    produces: [implementation]
+    on_success: qa
+    on_failure: null
+
+  - name: qa
+    role: qa
+    required_artifacts: [implementation]
+    produces: [qa_report.md]
+    on_success: human_review
+    on_failure: developer_fix
+
+  - name: developer_fix
+    role: developer
+    required_artifacts: [qa_report.md]
+    produces: [implementation]
+    on_success: qa
+    on_failure: human_review
+    max_loops: ${MAX_FIX_LOOPS:-3}
+
+  - name: human_review
+    role: null
+    type: gate
+    required_artifacts: [qa_report.md]
+    description: "Human review gate - inspect artifacts and approve/reject"
