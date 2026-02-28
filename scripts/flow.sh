@@ -1,11 +1,15 @@
 #!/usr/bin/env bash
 # flow.sh - Multi-agent feature lifecycle orchestration
+# Reads config and features from PROJECT_PATH
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
-LIFECYCLE_FILE="$PROJECT_ROOT/config/workflows/lifecycle.yaml"
-FEATURES_DIR="$PROJECT_ROOT/docs/features"
+DEV_ENV_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+
+get_project_path() {
+  [[ -z "${PROJECT_PATH:-}" ]] && { echo "Error: PROJECT_PATH not set. Run: export PROJECT_PATH=/path/to/your/project" >&2; exit 1; }
+  echo "$PROJECT_PATH"
+}
 
 usage() {
   echo "Usage: flow.sh <command> [options]"
@@ -13,6 +17,9 @@ usage() {
   echo "Commands:"
   echo "  run --feature <id> [--max-fix-loops <n>]   Run full feature lifecycle"
   echo "  status --feature <id>                       Show lifecycle artifact status"
+  echo ""
+  echo "Environment:"
+  echo "  PROJECT_PATH   Path to project containing config/ and docs/features/"
   echo ""
   exit 1
 }
@@ -33,7 +40,11 @@ case "$cmd" in
     done
     [[ -z "$FEATURE" ]] && { echo "Error: --feature required"; usage; }
 
-    FEATURE_FILE="$FEATURES_DIR/$FEATURE.yaml"
+    PROJECT="$(get_project_path)"
+    LIFECYCLE_FILE="$PROJECT/config/workflows/lifecycle.yaml"
+    FEATURE_FILE="$PROJECT/docs/features/$FEATURE.yaml"
+    FEATURES_DIR="$PROJECT/docs/features"
+
     [[ ! -f "$FEATURE_FILE" ]] && { echo "Error: Feature file not found: $FEATURE_FILE"; exit 1; }
 
     echo "========================================"
@@ -52,15 +63,14 @@ case "$cmd" in
     done
 
     fix_loop=0
-    qa_passed=false
-    while [[ "$qa_passed" == "false" && $fix_loop -le $MAX_FIX_LOOPS ]]; do
+    while [[ $fix_loop -le $MAX_FIX_LOOPS ]]; do
       echo "--- Stage: qa (attempt $((fix_loop + 1)) of $((MAX_FIX_LOOPS + 1))) ---"
       "$SCRIPT_DIR/qa.sh" run --suite fast
       echo ""
 
       if [[ $fix_loop -lt $MAX_FIX_LOOPS ]]; then
-        echo "--- Stage: bugfix (loop $((fix_loop + 1))) ---"
-        "$SCRIPT_DIR/agent.sh" run --name bugfix --background
+        echo "--- Stage: developer fix (loop $((fix_loop + 1))) ---"
+        "$SCRIPT_DIR/agent.sh" run --name developer --background
         echo ""
       fi
       fix_loop=$((fix_loop + 1))
@@ -69,7 +79,7 @@ case "$cmd" in
     echo "========================================"
     echo "  HUMAN REVIEW GATE"
     echo "========================================"
-    echo "  Review artifacts in: docs/features/$FEATURE/"
+    echo "  Review artifacts in: $FEATURES_DIR/$FEATURE/"
     echo "    - plan.md"
     echo "    - architecture.md"
     echo "    - qa_report.md"
@@ -86,6 +96,8 @@ case "$cmd" in
       esac
     done
     [[ -z "$FEATURE" ]] && { echo "Error: --feature required"; usage; }
+    PROJECT="$(get_project_path)"
+    FEATURES_DIR="$PROJECT/docs/features"
     echo "Feature: $FEATURE"
     echo "Artifacts:"
     for f in plan.md architecture.md qa_report.md; do

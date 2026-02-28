@@ -152,25 +152,6 @@ services:
           memory: 2g
     restart: unless-stopped
 
-  web_ui_demo-human:
-    container_name: web_ui_demo-human
-    image: ubuntu:22.04
-    profiles: [human]
-    volumes:
-      - /sandbox/web_ui_demo:/workspace
-    env_file:
-      - ./../sandbox/web_ui_demo/.env
-    working_dir: /workspace
-    networks:
-      - dev-network
-    tty: true
-    stdin_open: true
-    security_opt:
-      - no-new-privileges:true
-    cap_drop:
-      - ALL
-    command: /bin/bash
-
   agent-dev:
     container_name: agent-dev-${WORKTREE_NAME:-default}
     image: ubuntu:22.04

@@ -18,16 +18,10 @@ agents:
     role: developer
     profile: agent-dev
     mcp_profile: standard
-    description: "Feature implementation agent"
+    description: "Feature implementation and fix agent"
 
   - name: qa
     role: qa
     profile: agent-qa
     mcp_profile: standard
     description: "Quality assurance agent"
-
-  - name: bugfix
-    role: bugfix
-    profile: agent-dev
-    mcp_profile: standard
-    description: "Bug fix agent"

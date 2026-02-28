@@ -2,9 +2,8 @@
 version: "1"
 profiles:
   human:
-    description: "Full stack for human developer (all services + workspace)"
-    services:
-      [ollama, docs-mcp, nginx, sonarqube-db, sonarqube, web_ui_demo-human]
+    description: "Full stack for human developer (all shared services)"
+    services: [ollama, docs-mcp, nginx, sonarqube-db, sonarqube]
 
   agent-dev:
     description: "Development agent (isolated container, read-write workspace)"

@@ -8,9 +8,15 @@ param(
 )
 
 $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
-$ProjectRoot = Split-Path -Parent $ScriptDir
-$LifecycleFile = Join-Path $ProjectRoot "config\workflows\lifecycle.yaml"
-$FeaturesDir = Join-Path $ProjectRoot "docs\features"
+$DevEnvRoot = Split-Path -Parent $ScriptDir
+
+function Get-ProjectPath {
+    if (-not $env:PROJECT_PATH) {
+        Write-Host "Error: PROJECT_PATH not set. Run: `$env:PROJECT_PATH = 'C:\path\to\your\project'"
+        exit 1
+    }
+    return $env:PROJECT_PATH
+}
 
 function Show-Usage {
     Write-Host "Usage: flow.ps1 <command> [options]"
@@ -27,7 +33,10 @@ if ($Help -or -not $Command) { Show-Usage }
 switch ($Command.ToLower()) {
     "run" {
         if (-not $Feature) { Write-Host "Error: -Feature required"; Show-Usage }
-        $featureFile = Join-Path $FeaturesDir "$Feature.yaml"
+        $project       = Get-ProjectPath
+        $lifecycleFile = Join-Path $project "config\workflows\lifecycle.yaml"
+        $featuresDir   = Join-Path $project "docs\features"
+        $featureFile   = Join-Path $featuresDir "$Feature.yaml"
         if (-not (Test-Path $featureFile)) {
             Write-Host "Error: Feature file not found: $featureFile"; exit 1
         }
@@ -37,7 +46,7 @@ switch ($Command.ToLower()) {
         Write-Host "  Max fix loops:     $MaxFixLoops"
         Write-Host "========================================"
         Write-Host ""
-        Write-Host "Lifecycle config:  $LifecycleFile"
+        Write-Host "Lifecycle config:  $lifecycleFile"
         Write-Host "Feature brief:     $featureFile"
         Write-Host ""
 
@@ -54,8 +63,8 @@ switch ($Command.ToLower()) {
             Write-Host ""
 
             if ($fixLoop -lt $MaxFixLoops) {
-                Write-Host "--- Stage: bugfix (loop $($fixLoop + 1)) ---"
-                & "$ScriptDir\agent.ps1" run -Name bugfix -Background
+                Write-Host "--- Stage: developer fix (loop $($fixLoop + 1)) ---"
+                & "$ScriptDir\agent.ps1" run -Name developer -Background
                 Write-Host ""
             }
             $fixLoop++
@@ -64,7 +73,7 @@ switch ($Command.ToLower()) {
         Write-Host "========================================"
         Write-Host "  HUMAN REVIEW GATE"
         Write-Host "========================================"
-        Write-Host "  Review artifacts in: docs\features\$Feature\"
+        Write-Host "  Review artifacts in: $featuresDir\$Feature\"
         Write-Host "    - plan.md"
         Write-Host "    - architecture.md"
         Write-Host "    - qa_report.md"
@@ -74,10 +83,12 @@ switch ($Command.ToLower()) {
     }
     "status" {
         if (-not $Feature) { Write-Host "Error: -Feature required"; Show-Usage }
+        $project     = Get-ProjectPath
+        $featuresDir = Join-Path $project "docs\features"
         Write-Host "Feature: $Feature"
         Write-Host "Artifacts:"
         foreach ($f in @("plan.md", "architecture.md", "qa_report.md")) {
-            $path = Join-Path $FeaturesDir "$Feature\$f"
+            $path = Join-Path $featuresDir "$Feature\$f"
             if (Test-Path $path) {
                 Write-Host "  [x] $f"
             } else {

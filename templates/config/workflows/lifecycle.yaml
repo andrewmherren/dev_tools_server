@@ -27,10 +27,10 @@ stages:
     required_artifacts: [implementation]
     produces: [qa_report.md]
     on_success: human_review
-    on_failure: bugfix
+    on_failure: developer_fix
 
-  - name: bugfix
-    role: bugfix
+  - name: developer_fix
+    role: developer
     required_artifacts: [qa_report.md]
     produces: [implementation]
     on_success: qa

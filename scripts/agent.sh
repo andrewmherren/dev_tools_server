@@ -1,22 +1,25 @@
 #!/usr/bin/env bash
 # agent.sh - Agent container management
+# Reads agent config from PROJECT_PATH/config (set PROJECT_PATH env var or pass --project)
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
-COMPOSE_FILE="$PROJECT_ROOT/docker-compose.yml"
-CONFIG_FILE="$PROJECT_ROOT/config/agents/definitions.yaml"
+DEV_ENV_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+COMPOSE_FILE="$DEV_ENV_ROOT/docker-compose.yml"
 
 usage() {
   echo "Usage: agent.sh <command> [options]"
   echo ""
   echo "Commands:"
-  echo "  define --name <name> --role <role>   Register an agent"
+  echo "  define --name <name> --role <role>   Print agent definition to add to definitions.yaml"
   echo "  run --name <name> [--background]     Run an agent"
   echo "  list                                 List defined agents"
   echo "  status                               Show agent container status"
   echo "  logs --name <name>                   Show agent logs"
   echo "  stop --name <name>                   Stop agent container"
+  echo ""
+  echo "Environment:"
+  echo "  PROJECT_PATH   Path to project containing config/agents/definitions.yaml"
   echo ""
   exit 1
 }
@@ -38,9 +41,17 @@ parse_args() {
   done
 }
 
+get_config_file() {
+  local project="${PROJECT_PATH:-}"
+  [[ -z "$project" ]] && { echo "Error: PROJECT_PATH not set. Run: export PROJECT_PATH=/path/to/your/project" >&2; exit 1; }
+  echo "$project/config/agents/definitions.yaml"
+}
+
 get_profile() {
   local name="$1"
-  grep -A6 "name: $name" "$CONFIG_FILE" 2>/dev/null \
+  local config_file
+  config_file="$(get_config_file)"
+  grep -A6 "name: $name" "$config_file" 2>/dev/null \
     | grep "^    profile:" | head -1 | awk '{print $2}' \
     || echo "agent-dev"
 }
@@ -49,7 +60,7 @@ case "$cmd" in
   define)
     parse_args "$@"
     [[ -z "$NAME" || -z "$ROLE" ]] && { echo "Error: --name and --role required"; usage; }
-    echo "Agent definition (add to config/agents/definitions.yaml to persist):"
+    echo "Add the following to \$PROJECT_PATH/config/agents/definitions.yaml:"
     echo "  - name: $NAME"
     echo "    role: $ROLE"
     echo "    profile: agent-dev"
@@ -60,7 +71,7 @@ case "$cmd" in
     parse_args "$@"
     [[ -z "$NAME" ]] && { echo "Error: --name required"; usage; }
     PROFILE="$(get_profile "$NAME")"
-    export WORKTREE_NAME="${WORKTREE_NAME:-$(basename "$PROJECT_ROOT")}"
+    export WORKTREE_NAME="${WORKTREE_NAME:-$(basename "${PROJECT_PATH:-$DEV_ENV_ROOT}")}"
     if [[ "$BACKGROUND" == "true" ]]; then
       echo "Starting agent '$NAME' (profile: $PROFILE) in background..."
       docker compose -f "$COMPOSE_FILE" --profile "$PROFILE" up -d
@@ -70,8 +81,9 @@ case "$cmd" in
     fi
     ;;
   list)
-    echo "Defined agents (from config/agents/definitions.yaml):"
-    grep "^  - name:" "$CONFIG_FILE" | awk '{print "  -", $3}'
+    config_file="$(get_config_file)"
+    echo "Defined agents (from $config_file):"
+    grep "^  - name:" "$config_file" | awk '{print "  -", $3}'
     ;;
   status)
     docker compose -f "$COMPOSE_FILE" ps
