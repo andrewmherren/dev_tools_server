@@ -1,0 +1,19 @@
+# Example Feature Brief
+# Copy this file and rename to <feature-id>.yaml to start a new feature
+id: example-feature
+title: "Example Feature"
+description: "Brief description of the feature (1-3 sentences)"
+description_file: example-feature.md # Optional: link to extended .md description
+priority: medium # low | medium | high | critical
+status: draft # draft | planned | in-progress | qa | review | done
+created: "2026-01-01"
+owner: "" # Assigned human owner
+
+acceptance_criteria:
+  - "Criterion 1"
+  - "Criterion 2"
+
+out_of_scope:
+  - "Thing not included in this feature"
+
+notes: ""

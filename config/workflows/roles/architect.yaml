@@ -1,0 +1,17 @@
+role: architect
+description: "Reads plan.md, produces architecture decisions and component design"
+profile: agent-dev
+mcp_profile: standard
+required_inputs:
+  - name: plan
+    source: docs/features/<feature-id>/plan.md
+outputs:
+  - name: architecture.md
+    path: docs/features/<feature-id>/architecture.md
+instructions: |
+  You are the Architect agent. Read the plan and produce architecture.md that includes:
+  - Component diagram (text/mermaid)
+  - Technology decisions with rationale
+  - Interface contracts
+  - Data flow description
+  - Security considerations
