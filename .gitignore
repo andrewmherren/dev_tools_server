@@ -57,4 +57,5 @@ node_modules/
 __pycache__/
 *.pyc
 .pytest_cache/
-LOCAL_*
+.server_data
+./TODO/
