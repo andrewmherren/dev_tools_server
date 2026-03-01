@@ -1,120 +1,119 @@
-# MCP Tool Policy & Risk Tiering
+# MCP Servers & Access Policy
 
-This document defines trust tiers for MCP tools and approved access patterns in the dev environment.
+This dev environment provides shared MCP (Model Context Protocol) servers for code analysis and documentation. This document describes what's available and how to use it safely.
 
-## Risk Tiers
+## Available MCP Servers
 
-### Tier 1: Local, Read-Only (Low Risk)
-**Characteristics:**
-- Operates only on local machine, no remote access
-- Read-only operations (no mutations)
-- No exfiltration vectors
+### docs-mcp (Documentation Indexing)
 
-**Examples:**
-- `docs-mcp` (local documentation indexing)
-- `filesystem` (read-only file access)
-- `package-registry` (lookup only)
+**Purpose:** Index and search local documentation and code using embeddings
 
-**Policy:**
-- Enabled by default in all agent profiles
-- No approval required
-- Can be used in untrusted/minimal profiles
+**Type:** SSE (Server-Sent Events)  
+**URL:** `http://docs.localhost/sse` (from host) or `http://docs-mcp:6280/sse` (from containers)
 
----
+**Capabilities:**
+- Full-text and semantic search across documentation
+- Code snippet indexing
+- Uses local Ollama for embeddings (no external API calls)
 
-### Tier 2: Hosted, Read-Only (Medium Risk)
-**Characteristics:**
-- Remote service access but read-only
-- Potential for information disclosure (e.g., reading private repositories)
-- No direct remote mutations
+**Risk Level:** Low
+- Operates entirely on local data
+- No external network calls
+- Read-only access
 
-**Examples:**
-- `github` (read file contents, list branches, search code)
-- `sonarqube` (view issues, retrieve metrics)
-
-**Policy:**
-- Enabled in `standard` and `agent-dev-write` profiles
-- Requires valid credentials (tokens stored in `.env.local`, never in code)
-- Logs should be monitored for unusual patterns
-- Agents should not cache sensitive data locally
+**Configuration:**
+```json
+{
+  "mcpServers": {
+    "docs-mcp": {
+      "type": "sse",
+      "url": "http://docs.localhost/sse"
+    }
+  }
+}
+```
 
 ---
 
-### Tier 3: Hosted, Write Access (High Risk)
-**Characteristics:**
-- Remote mutations (pushes, creates, deletes)
-- Direct impact on remote repositories or systems
-- Requires strong approval and audit trail
+### sonarqube (Code Quality Analysis)
 
-**Examples:**
-- `github` (create/update files, push, merge)
-- `sonarqube` (mark issues, change settings)
+**Purpose:** Analyze code for bugs, vulnerabilities, and code smells
 
-**Policy:**
-- **Disabled by default** in agent profiles
-- Requires explicit opt-in via role definition + `--allow-remote-writes` flag
-- Supported profiles: `agent-dev-write` (developer role only)
-- All mutations must log to audit trail (workflow logs)
-- Should never be enabled in agent-qa profile
-- Agent containers must not have SSH keys mounted
+**Type:** Process (stdio)  
+**Service URL:** `http://sonarqube.localhost` (from host) or `http://sonarqube:9000` (from containers)
 
----
+**Capabilities:**
+- Vulnerability scanning
+- Code quality metrics
+- Technical debt analysis
+- Support for 25+ languages
 
-### Tier 4: System-Critical (Forbidden by Default)
-**Characteristics:**
-- Could compromise host or dev environment integrity
-- Persistent credential installation
-- Infrastructure reconfiguration
+**Risk Level:** Low to Medium
+- Requires authentication token (store securely)
+- Read-only by default for analysis
+- Credential should have limited permissions
 
-**Examples:**
-- Host OS command execution
-- Docker daemon access
-- Permanent credential storage on host
+**Configuration:**
+```json
+{
+  "mcpServers": {
+    "sonarqube": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "sonarqube-mcp-server"],
+      "env": {
+        "SONARQUBE_URL": "http://sonarqube.localhost",
+        "SONARQUBE_TOKEN": "sqp_xxxxxxx"
+      }
+    }
+  }
+}
+```
 
-**Policy:**
-- Completely disabled for agents
-- System operations only via human-initiated scripts
-- Documented in advanced hardening guide (ADVANCED.md, when created)
-
----
-
-## Access Control Matrix
-
-| Tool | default | minimal | standard | agent-dev-write | agent-qa |
-|------|---------|---------|----------|-----------------|----------|
-| docs-mcp (read-only) | ✅ | ✅ | ✅ | ✅ | ✅ |
-| filesystem (read) | ✅ | ❌ | ✅ | ✅ | ✅ |
-| filesystem (write) | ❌ | ❌ | ❌ | ✅ | ❌ |
-| github (read) | ❌ | ❌ | ✅ | ✅ | ✅ |
-| github (write) | ❌ | ❌ | ❌ | ✅ | ❌ |
-| sonarqube (read) | ❌ | ❌ | ✅ | ✅ | ✅ |
-| sonarqube (mutate) | ❌ | ❌ | ❌ | ✅ | ❌ |
+**Getting a Token:**
+1. Access `http://sonarqube.localhost`
+2. Login (default: admin/admin)
+3. Go to User > My Account > Security
+4. Generate a token
+5. Store in environment variable: `SONARQUBE_TOKEN=sqp_xxxxx`
 
 ---
 
-## Implementation
+## Access Policy
 
-MCP access is controlled via `config/mcp/allowlist.yaml`, which defines profiles and their permitted tools. See that file for detailed tool-by-tool allowlist.
+### Authentication
+- **docs-mcp:** No authentication required
+- **sonarqube:** Token-based authentication
+  - Keep tokens in `.env.local` or environment variables
+  - Never commit tokens to git
+  - Rotate tokens periodically
 
-### For Agent Developers
-- When defining a new agent role in `config/workflows/roles/<role>.yaml`, specify which MCP profile to use.
-- Example:
-  ```yaml
-  roles:
-    developer:
-      mcp_profile: agent-dev-write
-      description: "Developer agent with write access to repos"
-  ```
+### Data Handling
+- All analysis occurs locally on the dev server
+- No automatic uploads to external services
+- Analysis results stored in local Postgres database
+- Embeddings stored on local disk
 
-### For System Administrators
-- Review `config/mcp/allowlist.yaml` periodically.
-- Update tool allowlists when new MCP tools are added.
-- Monitor agent logs for unexpected tool invocations.
-- If a tool breach is suspected, immediately disable it and audit usage.
+### Project Integration
+- Each project analyzes its own code
+- Results isolated by project key in SonarQube
+- Documentation indexing includes all indexed sources
 
 ---
 
-## Future Work
-- Audit logging: Track all MCP tool invocations with timestamp, agent, tool, and arguments
-- Rate limiting: Throttle high-risk tier 3 operations to prevent automated abuse
-- Approval workflow: Require human approval before tier 3 operations in shared environments
+## Usage Guidelines
+
+### Before Using MCP Servers
+1. Confirm dev server is running: `docker compose ps`
+2. Verify services are healthy: `docker compose logs -f`
+3. For SonarQube: generate and store your token
+
+### In Your Project
+1. Copy `example-vscode/mcp.json` to `.vscode/mcp.json`
+2. Update `SONARQUBE_TOKEN` environment variable
+3. Reload VS Code window to activate MCP servers
+
+### Troubleshooting
+- **docs-mcp not connecting?** Check Ollama is running: `docker compose logs ollama`
+- **SonarQube can't authenticate?** Verify token is valid and hasn't expired
+- **Services unreachable?** Ensure `http://localhost` resolves (check Traefik: `docker compose logs traefik`)

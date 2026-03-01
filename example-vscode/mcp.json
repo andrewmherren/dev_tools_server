@@ -1,0 +1,20 @@
+{
+    "mcpServers": {
+        "docs-mcp": {
+            "type": "sse",
+            "url": "http://docs.localhost/sse"
+        },
+        "sonarqube": {
+            "type": "stdio",
+            "command": "npx",
+            "args": [
+                "-y",
+                "sonarqube-mcp-server"
+            ],
+            "env": {
+                "SONARQUBE_URL": "http://sonarqube.localhost",
+                "SONARQUBE_TOKEN": "${SONARQUBE_TOKEN}"
+            }
+        }
+    }
+}

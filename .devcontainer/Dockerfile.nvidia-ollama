@@ -9,16 +9,22 @@ RUN apt-get update && \
     rm -rf /var/lib/apt/lists/*
 
 # Create non-root user (1000:1000) for running Ollama
-RUN groupadd -g 1000 appuser && \
-    useradd -u 1000 -g 1000 -m -d /home/ollama appuser && \
+# Check if group/user already exists before creating
+RUN (getent group 1000 || groupadd -g 1000 appuser) && \
+    (id -u 1000 &>/dev/null || useradd -u 1000 -g 1000 -m -d /home/ollama appuser) && \
     mkdir -p /home/ollama && \
     chown -R 1000:1000 /home/ollama
 
-# Switch to non-root user: ollama service requires specific user handling
-# For GPU support and compatibility with base image, use the explicit UID:GID
-USER 1000:1000
+# Copy initialization script that auto-downloads required models
+COPY .devcontainer/ollama-entrypoint.sh /usr/local/bin/ollama-entrypoint.sh
+RUN chmod +x /usr/local/bin/ollama-entrypoint.sh
+
+# Keep as root for Windows/NTFS compatibility with mounted volumes
+# (NTFS permissions don't map to Unix users the same way)
+USER root
 
 # Expose Ollama port
 EXPOSE 11434
 
-# Don't override entrypoint — let base image handle starting Ollama
+# Use custom entrypoint to initialize models on first run
+ENTRYPOINT ["/usr/local/bin/ollama-entrypoint.sh"]

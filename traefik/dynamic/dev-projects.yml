@@ -1,0 +1,106 @@
+# Dev projects and core services routing configuration
+# All routing is defined here since Docker provider is currently disabled
+# (See DOCKER_PROVIDER_ISSUE.md)
+
+http:
+  routers:
+    # Homepage - Default route
+    homepage:
+      entryPoints:
+        - web
+      rule: Host(`localhost`)
+      service: homepage-service
+      priority: 1
+
+    # Traefik API for homepage status checks (same-origin on localhost)
+    traefik-api:
+      entryPoints:
+        - web
+      rule: Host(`localhost`) && PathPrefix(`/api`)
+      service: api@internal
+      priority: 100
+
+    # Core Services
+    docs-mcp:
+      entryPoints:
+        - web
+      rule: Host(`docs.localhost`)
+      service: docs-mcp-service
+
+    ollama:
+      entryPoints:
+        - web
+      rule: Host(`ollama.localhost`)
+      service: ollama-service
+
+    sonarqube:
+      entryPoints:
+        - web
+      rule: Host(`sonarqube.localhost`)
+      service: sonarqube-service
+
+    traefik-dashboard:
+      entryPoints:
+        - web
+      rule: Host(`traefik.localhost`)
+      service: api@internal
+
+    # Trivy is API-only with no web UI - use docker exec commands instead
+    # trivy:
+    #   entryPoints:
+    #     - web
+    #   rule: Host(`trivy.localhost`)
+    #   service: trivy-service
+
+    # Drone disabled until Git provider configured
+    # drone:
+    #   entryPoints:
+    #     - web
+    #   rule: Host(`drone.localhost`)
+    #   service: drone-service
+
+    # Example: Register your local dev projects here
+    # Replace 5173 with your dev server port, add more routes as needed
+    #
+    # my-project:
+    #   entryPoints:
+    #     - web
+    #   rule: Host(`my-project.localhost`)
+    #   service: my-project-service
+
+  services:
+    homepage-service:
+      loadBalancer:
+        servers:
+          - url: http://homepage:80
+
+    docs-mcp-service:
+      loadBalancer:
+        servers:
+          - url: http://docs-mcp:6280
+
+    ollama-service:
+      loadBalancer:
+        servers:
+          - url: http://ollama:11434
+
+    sonarqube-service:
+      loadBalancer:
+        servers:
+          - url: http://sonarqube:9000
+
+    trivy-service:
+      loadBalancer:
+        servers:
+          - url: http://trivy:8080
+
+    drone-service:
+      loadBalancer:
+        servers:
+          - url: http://drone-server:80
+
+    # Example local project service
+    # my-project-service:
+    #   loadBalancer:
+    #     servers:
+    #       - url: http://host.docker.internal:5173

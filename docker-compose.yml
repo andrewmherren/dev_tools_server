@@ -8,7 +8,11 @@ networks:
 volumes:
   docs-mcp-data:
     driver: local
-  nginx-ssl:
+  postgres-data:
+    driver: local
+  trivy-cache:
+    driver: local
+  drone-data:
     driver: local
 
 services:
@@ -17,8 +21,6 @@ services:
       context: .
       dockerfile: .devcontainer/Dockerfile.nvidia-ollama
     container_name: ollama-server
-    profiles: [human]
-    user: "1000:1000"
     volumes:
       - ${OLLAMA_STORAGE_PATH}:/home/ollama/.ollama
     environment:
@@ -27,6 +29,7 @@ services:
     tty: true
     stdin_open: true
     networks:
+      - dev-network
       - internal-network
     security_opt:
       - no-new-privileges:true
@@ -49,10 +52,8 @@ services:
     build:
       context: .
       dockerfile: .devcontainer/Dockerfile.docs-mcp
-    profiles: [human]
     depends_on:
       - ollama
-    user: "1000:1000"
     volumes:
       - docs-mcp-data:/data
     environment:
@@ -62,6 +63,7 @@ services:
     tty: true
     stdin_open: true
     networks:
+      - dev-network
       - internal-network
     security_opt:
       - no-new-privileges:true
@@ -73,22 +75,19 @@ services:
           memory: 512m
     restart: unless-stopped
 
-  nginx:
-    container_name: ai-dev-nginx
-    image: nginx:1.27-alpine
-    profiles: [human]
-    user: "101:101"
-    depends_on:
-      - docs-mcp
-      - ollama
-      - sonarqube
+  traefik:
+    container_name: ai-dev-traefik
+    image: traefik:v3.2
+    user: "0:0"
+    environment:
+      - DOCKER_API_VERSION=1.44
+      - DOCKER_HOST=unix:///var/run/docker.sock
     ports:
       - 127.0.0.1:80:80
-      - 127.0.0.1:443:443
     volumes:
-      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
-      - ./nginx/html:/usr/share/nginx/html:ro
-      - nginx-ssl:/etc/nginx/ssl
+      - ./traefik/traefik.yml:/etc/traefik/traefik.yml:ro
+      - ./traefik/dynamic:/etc/traefik/dynamic:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
     networks:
       - dev-network
       - internal-network
@@ -104,23 +103,19 @@ services:
           memory: 128m
     restart: unless-stopped
 
-  sonarqube-db:
-    container_name: sonarqube-postgres
-    image: postgres:15-alpine
-    profiles: [human]
-    user: "999:999"
+  postgres:
+    container_name: postgres-server
+    image: pgvector/pgvector:pg15
     environment:
       - POSTGRES_USER=sonar
       - POSTGRES_PASSWORD=sonar
       - POSTGRES_DB=sonarqube
     volumes:
-      - ${SONARQUBE_STORAGE_PATH}/postgres:/var/lib/postgresql/data
+      - postgres-data:/var/lib/postgresql/data
     networks:
       - internal-network
     security_opt:
       - no-new-privileges:true
-    cap_drop:
-      - ALL
     deploy:
       resources:
         limits:
@@ -130,14 +125,12 @@ services:
   sonarqube:
     container_name: sonarqube-server
     image: sonarqube:10-community
-    profiles: [human]
     depends_on:
-      - sonarqube-db
+      - postgres
     environment:
-      - SONAR_JDBC_URL=jdbc:postgresql://sonarqube-db:5432/sonarqube
+      - SONAR_JDBC_URL=jdbc:postgresql://postgres:5432/sonarqube
       - SONAR_JDBC_USERNAME=sonar
       - SONAR_JDBC_PASSWORD=sonar
-      - SONAR_WEB_CONTEXT=/sonarqube
     volumes:
       - ${SONARQUBE_STORAGE_PATH}/data:/opt/sonarqube/data
       - ${SONARQUBE_STORAGE_PATH}/extensions:/opt/sonarqube/extensions
@@ -152,4 +145,98 @@ services:
       resources:
         limits:
           memory: 2g
+    restart: unless-stopped
+
+  trivy:
+    container_name: trivy-server
+    image: aquasec/trivy:latest
+    command: ["server", "--listen", "0.0.0.0:8080"]
+    volumes:
+      - trivy-cache:/root/.cache/trivy
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - dev-network
+      - internal-network
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    deploy:
+      resources:
+        limits:
+          memory: 512m
+    restart: unless-stopped
+
+  # Drone CI - Disabled until Git provider is configured
+  # Uncomment and configure DRONE_GITEA_SERVER, DRONE_GITEA_CLIENT_ID, DRONE_GITEA_CLIENT_SECRET in .env
+  # drone-server:
+  #   container_name: drone-server
+  #   image: drone/drone:2
+  #   environment:
+  #     - DRONE_GITEA_SERVER=${DRONE_GITEA_SERVER:-}
+  #     - DRONE_GITEA_CLIENT_ID=${DRONE_GITEA_CLIENT_ID:-}
+  #     - DRONE_GITEA_CLIENT_SECRET=${DRONE_GITEA_CLIENT_SECRET:-}
+  #     - DRONE_RPC_SECRET=${DRONE_RPC_SECRET}
+  #     - DRONE_SERVER_HOST=drone.localhost
+  #     - DRONE_SERVER_PROTO=http
+  #     - DRONE_USER_CREATE=${DRONE_USER_CREATE:-}
+  #   volumes:
+  #     - drone-data:/data
+  #   networks:
+  #     - internal-network
+  #   security_opt:
+  #     - no-new-privileges:true
+  #   cap_drop:
+  #     - ALL
+  #   deploy:
+  #     resources:
+  #       limits:
+  #         memory: 512m
+  #   restart: unless-stopped
+
+  # drone-agent:
+  #   container_name: drone-agent
+  #   image: drone/drone-runner-docker:1
+  #   depends_on:
+  #     - drone-server
+  #   environment:
+  #     - DRONE_RPC_PROTO=http
+  #     - DRONE_RPC_HOST=drone-server
+  #     - DRONE_RPC_SECRET=${DRONE_RPC_SECRET}
+  #     - DRONE_RUNNER_CAPACITY=2
+  #     - DRONE_RUNNER_NAME=local-agent
+  #   volumes:
+  #     - /var/run/docker.sock:/var/run/docker.sock:ro
+  #   networks:
+  #     - dev-network
+  #     - internal-network
+  #   security_opt:
+  #     - no-new-privileges:true
+  #   cap_drop:
+  #     - ALL
+  #   deploy:
+  #     resources:
+  #       limits:
+  #         memory: 1g
+  #   restart: unless-stopped
+
+  homepage:
+    container_name: dev-homepage
+    image: nginx:alpine
+    volumes:
+      - ./homepage:/usr/share/nginx/html:ro
+    networks:
+      - internal-network
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - SETUID
+      - SETGID
+    deploy:
+      resources:
+        limits:
+          memory: 32m
     restart: unless-stopped

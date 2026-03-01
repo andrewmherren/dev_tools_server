@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dev Tools Server</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/marked/lib/marked.umd.js"></script>
+</head>
+
+<body>
+    <header>
+        <div class="header-top">
+            <button class="back-button" id="backButton" style="display: none;" title="Back">&larr;</button>
+            <h1 id="headerTitle">🚀 Dev Tools Server</h1>
+        </div>
+        <button class="theme-toggle" id="themeToggle" title="Toggle dark mode">🌙</button>
+    </header>
+
+    <div class="main-container">
+        <!-- Services View -->
+        <div id="servicesView" class="view">
+            <div class="documentation">
+                <a href="#" class="doc-card" onclick="openDoc(event, 'README.md')">
+                    <div class="doc-title">📖 Infrastructure Guide</div>
+                    <div style="font-size: 0.8em; color: var(--text-secondary);">Full documentation & architecture</div>
+                </a>
+                <a href="#" class="doc-card" onclick="openDoc(event, 'PROJECT_SETUP.md')">
+                    <div class="doc-title">⚙️ Project Setup</div>
+                    <div style="font-size: 0.8em; color: var(--text-secondary);">Integration guide</div>
+                </a>
+            </div>
+
+            <div class="services-section">
+                <h2>Services</h2>
+                <div class="services-grid" id="servicesGrid"></div>
+            </div>
+        </div>
+
+        <!-- Document View -->
+        <div id="docView" class="view" style="display: none;">
+            <div id="markdownContent" class="markdown-content"></div>
+        </div>
+    </div>
+
+    <footer>
+        Dev Tools Server • Powered by Docker & Traefik
+    </footer>
+
+    <script>
+        // Dark mode toggle - default to dark theme
+        const themeToggle = document.getElementById('themeToggle');
+        const html = document.documentElement;
+
+        const prefersDark = localStorage.getItem('theme') || 'dark';
+
+        if (prefersDark === 'dark') {
+            html.setAttribute('data-theme', 'dark');
+            themeToggle.textContent = '☀️';
+        } else {
+            html.removeAttribute('data-theme');
+            themeToggle.textContent = '🌙';
+        }
+
+        themeToggle.addEventListener('click', () => {
+            const isDark = html.getAttribute('data-theme') === 'dark';
+            if (isDark) {
+                html.removeAttribute('data-theme');
+                localStorage.setItem('theme', 'light');
+                themeToggle.textContent = '🌙';
+            } else {
+                html.setAttribute('data-theme', 'dark');
+                localStorage.setItem('theme', 'dark');
+                themeToggle.textContent = '☀️';
+            }
+        });
+
+        // View management
+        const servicesView = document.getElementById('servicesView');
+        const docView = document.getElementById('docView');
+        const backButton = document.getElementById('backButton');
+        const headerTitle = document.getElementById('headerTitle');
+
+        function showServicesView() {
+            servicesView.style.display = 'block';
+            docView.style.display = 'none';
+            headerTitle.textContent = '🚀 Dev Tools Server';
+            backButton.style.display = 'none';
+        }
+
+        function showDocView(title) {
+            servicesView.style.display = 'none';
+            docView.style.display = 'block';
+            headerTitle.textContent = title;
+            backButton.style.display = 'inline-block';
+            window.scrollTo(0, 0);
+        }
+
+        // Back button functionality
+        backButton.addEventListener('click', () => {
+            window.history.back();
+        });
+
+        // Handle browser back/forward
+        window.addEventListener('popstate', () => {
+            showServicesView();
+        });
+
+        // Services configuration
+        const services = [
+            {
+                name: 'SonarQube',
+                emoji: '🔍',
+                description: 'Code quality and security analysis',
+                url: 'http://sonarqube.localhost',
+                traefikService: 'sonarqube-service@file',
+                traefikRouter: 'sonarqube@file',
+                type: 'web'
+            },
+            {
+                name: 'Traefik Dashboard',
+                emoji: '🔀',
+                description: 'Reverse proxy and load balancer',
+                url: 'http://traefik.localhost',
+                traefikService: 'api@internal',
+                traefikRouter: 'traefik-dashboard@file',
+                type: 'web'
+            },
+            {
+                name: 'Docs MCP',
+                emoji: '📚',
+                description: 'Documentation indexing service',
+                url: 'http://docs.localhost',
+                traefikService: 'docs-mcp-service@file',
+                traefikRouter: 'docs-mcp@file',
+                type: 'web'
+            },
+            {
+                name: 'Drone CI',
+                emoji: '🚁',
+                description: 'Container-native CI/CD platform',
+                url: 'http://drone.localhost',
+                traefikService: 'drone-service@file',
+                traefikRouter: 'drone@file',
+                type: 'web'
+            },
+            {
+                name: 'Ollama',
+                emoji: '🤖',
+                description: 'Local LLM API server',
+                statusUrl: 'http://ollama.localhost/api/tags',
+                traefikService: 'ollama-service@file',
+                traefikRouter: 'ollama@file',
+                type: 'api-only'
+            },
+            {
+                name: 'Trivy',
+                emoji: '🛡️',
+                description: 'Container security scanner',
+                statusUrl: 'http://trivy.localhost/health',
+                traefikService: 'trivy-service@file',
+                traefikRouter: 'trivy@file',
+                type: 'api-only'
+            }
+        ];
+
+        let traefikStatePromise;
+
+        async function getTraefikState() {
+            if (!traefikStatePromise) {
+                traefikStatePromise = (async () => {
+                    const controller = new AbortController();
+                    const timeoutId = setTimeout(() => controller.abort(), 3000);
+
+                    try {
+                        const [servicesResponse, routersResponse] = await Promise.all([
+                            fetch('/api/http/services', { method: 'GET', signal: controller.signal }),
+                            fetch('/api/http/routers', { method: 'GET', signal: controller.signal })
+                        ]);
+
+                        if (!servicesResponse.ok || !routersResponse.ok) {
+                            return { services: new Set(), routers: new Set() };
+                        }
+
+                        const servicesData = await servicesResponse.json();
+                        const routersData = await routersResponse.json();
+
+                        return {
+                            services: new Set(servicesData.map((item) => item.name)),
+                            routers: new Set(routersData.map((item) => item.name))
+                        };
+                    } catch {
+                        return { services: new Set(), routers: new Set() };
+                    } finally {
+                        clearTimeout(timeoutId);
+                    }
+                })();
+            }
+
+            return traefikStatePromise;
+        }
+
+        // Check service status via Traefik API
+        async function checkServiceStatus(service) {
+            if (!service.traefikService) {
+                return 'offline';
+            }
+
+            const traefikState = await getTraefikState();
+            const hasService = traefikState.services.has(service.traefikService);
+            const requiresRouter = service.type === 'web';
+            const hasRouter = !requiresRouter || !service.traefikRouter || traefikState.routers.has(service.traefikRouter);
+
+            return hasService && hasRouter ? 'online' : 'offline';
+        }
+
+        // Store service statuses
+        const serviceStatuses = {};
+
+        // Render services grid
+        async function renderServices() {
+            const grid = document.getElementById('servicesGrid');
+            grid.innerHTML = '';
+
+            for (const service of services) {
+                let statusHtml = '';
+
+                if (service.type === 'disabled') {
+                    statusHtml = `<div class="status-badge offline"><span class="status-dot offline"></span> Disabled</div>`;
+                } else {
+                    const statusId = `status-${service.name.replace(/\s+/g, '-')}`;
+                    statusHtml = `<div class="status-badge checking"><span class="status-dot checking"></span> <span id="${statusId}">Checking...</span></div>`;
+
+                    // Check status asynchronously using Traefik API
+                    checkServiceStatus(service).then(status => {
+                        const badge = document.querySelector(`#${statusId}`);
+                        const serviceItem = document.querySelector(`[data-service="${service.name}"]`);
+
+                        if (badge) {
+                            const statusBadge = badge.parentElement;
+                            if (status === 'online') {
+                                const displayText = service.type === 'api-only' ? 'Online (API)' : 'Online';
+                                badge.textContent = displayText;
+                                statusBadge.className = 'status-badge online';
+                                statusBadge.querySelector('.status-dot').className = 'status-dot online';
+
+                                // Update service item to be clickable if it has a web URL
+                                if (serviceItem && service.url) {
+                                    const newItem = document.createElement('a');
+                                    newItem.href = service.url;
+                                    newItem.target = '_blank';
+                                    newItem.className = 'service-item service-link';
+                                    newItem.setAttribute('data-service', service.name);
+                                    newItem.innerHTML = serviceItem.innerHTML;
+                                    serviceItem.parentNode.replaceChild(newItem, serviceItem);
+                                }
+                            } else {
+                                badge.textContent = 'Offline';
+                                statusBadge.className = 'status-badge offline';
+                                statusBadge.querySelector('.status-dot').className = 'status-dot offline';
+                            }
+                        }
+                    });
+                }
+
+                let apiDisplay = '';
+                if (service.type === 'api-only') {
+                    apiDisplay = 'API only';
+                }
+
+                const contentHtml = `
+                    <div class="service-header">
+                        <span class="service-name">${service.emoji} ${service.name}</span>
+                        ${statusHtml}
+                    </div>
+                    <p class="service-description">${service.description}</p>
+                    ${service.url || apiDisplay ? `<div class="service-link">${service.url ? new URL(service.url).hostname : apiDisplay}</div>` : ''}
+                `;
+
+                let item;
+                // Create non-clickable div initially for web services (will be made clickable after status check)
+                if (service.url && service.type !== 'disabled') {
+                    item = document.createElement('div');
+                    item.className = 'service-item';
+                    item.setAttribute('data-service', service.name);
+                } else if (service.url) {
+                    item = document.createElement('a');
+                    item.href = service.url;
+                    item.target = '_blank';
+                    item.className = 'service-item service-link';
+                    item.setAttribute('data-service', service.name);
+                } else {
+                    item = document.createElement('div');
+                    item.className = 'service-item';
+                    item.setAttribute('data-service', service.name);
+                }
+
+                if (service.type === 'disabled') {
+                    item.classList.add('disabled');
+                }
+
+                item.innerHTML = contentHtml;
+                grid.appendChild(item);
+            }
+        }
+
+        // Document loading
+        window.openDoc = async (event, docPath) => {
+            event.preventDefault();
+            const content = document.getElementById('markdownContent');
+
+            try {
+                const response = await fetch(`./ ${docPath}`);
+                const markdown = await response.text();
+                const html = window.marked.parse(markdown);
+                content.innerHTML = html;
+
+                // Get title from the first h1 or use filename
+                const tempDiv = document.createElement('div');
+                tempDiv.innerHTML = html;
+                const title = tempDiv.querySelector('h1')?.textContent || docPath.replace('.md', '');
+
+                showDocView(title);
+
+                // Add to browser history
+                window.history.pushState({ doc: docPath }, title, `? doc = ${docPath} `);
+            } catch (error) {
+                content.innerHTML = `< p > Error loading document: ${error.message}</p > `;
+                showDocView('Error');
+            }
+        };
+
+        // Handle initial page load with doc parameter
+        window.addEventListener('load', () => {
+            const params = new URLSearchParams(window.location.search);
+            const docPath = params.get('doc');
+
+            if (docPath) {
+                // Load document without adding to history again
+                fetch(`./ ${docPath}`)
+                    .then(response => response.text())
+                    .then(markdown => {
+                        const html = window.marked.parse(markdown);
+                        document.getElementById('markdownContent').innerHTML = html;
+                        const tempDiv = document.createElement('div');
+                        tempDiv.innerHTML = html;
+                        const title = tempDiv.querySelector('h1')?.textContent || docPath.replace('.md', '');
+                        showDocView(title);
+                    });
+            }
+        });
+
+        // Initialize
+        renderServices();
+    </script>
+</body>
+
+</html>

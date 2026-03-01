@@ -1,41 +1,55 @@
-# Git Safety Guardrails
+# Safe Integration with the Dev Environment
 
-## Default Policy: No Autonomous Remote Pushes
+## Overview
 
-Agent containers are configured by default to prevent autonomous remote git operations.
+This shared dev server provides code quality analysis, documentation indexing, and AI-assisted development tools. Follow these patterns when integrating your projects.
 
-### How It Works
+## Security Principles
 
-1. **No SSH key mounts** — Agent container definitions in `docker-compose.yml` do not mount `~/.ssh` or any SSH keys.
-2. **No persisted credentials** — Agent containers do not receive git credential helpers or token env vars by default.
-3. **No remote write tools in MCP allowlist** — `config/mcp/allowlist.yaml` explicitly disallows `create_or_update_file`, `push_files`, and branch creation tools in the `standard` profile.
+### No Autonomous Remote Operations
+The dev server itself performs no autonomous remote git operations. All code modifications and pushes remain under your direct control.
 
-### What Agents Can Do
+### Credential Management
+- **SonarQube Token**: Store in `.vscode/settings.json` or environment variables (never in code)
+- **Git Credentials**: Use your standard git credential helper for repository access
+- **API Tokens**: Keep out of `.env` files committed to git
 
-- Read and modify local workspace files
-- Run local git commands (`git status`, `git diff`, `git log`, `git commit`)
-- All remote push/create operations require explicit human action
+## Best Practices
 
-### Enabling Remote Access (Advanced)
+### 1. Isolate Configuration
+- Keep `.vscode/mcp.json` in `.gitignore` if it contains tokens
+- Use `.env.local` for sensitive values in local development
+- Store CI/CD tokens in your git provider's secrets management
 
-If you need to grant an agent remote push access for a specific low-risk workflow:
+### 2. Local-Only MCP Development
+When using the docs-mcp and sonarqube servers:
+- They only read your local code and index it locally
+- No automatic uploads to external services
+- All analysis runs on your machine
 
-1. Create a dedicated `agent-dev-write` MCP profile in `config/mcp/allowlist.yaml`
-2. Mount an appropriately scoped deploy key (not your personal key)
-3. Document the decision in your feature brief
+### 3. Code Review Workflow
+- Run SonarQube analysis before submitting PRs
+- Use Copilot with the dev environment for code suggestions
+- All push operations remain manual human actions
 
-This path is intentionally not the default. See `ADVANCED.md` (planned) for details.
+### 4. Team Development
+If sharing this dev server across a team:
+- Document URL access points (e.g., `http://sonarqube.localhost`)
+- Use network segmentation to isolate dev-network from untrusted systems
+- Keep storage paths on reliable storage media with backups
 
-### Optional Local Guard Hook
+## Recommended `.gitignore` Entries
 
-A pre-push hook can block accidental pushes from agent worktrees:
+```gitignore
+# VSCode MCP config with tokens
+.vscode/mcp.json
+.vscode/settings.json
 
-```bash
-#!/usr/bin/env bash
-# .git/hooks/pre-push  (chmod +x this file)
-# Block pushes from agent worktrees by default.
-if [[ "${GIT_DIR:-}" == *"worktree"* || "$(git branch --show-current)" == agent/* ]]; then
-  echo "ERROR: Remote push blocked in agent worktree. Use human review workflow."
-  exit 1
-fi
+# Local environment files
+.env
+.env.local
+.env.*.local
+
+# SonarQube analysis cache
+.sonarqube/
 ```
