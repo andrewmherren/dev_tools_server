@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Development Environment</title>
+    <title>Dev Tools Server</title>
     <style>
         * {
             margin: 0;
@@ -144,57 +144,51 @@
 
 <body>
     <div class="container">
-        <h1>🚀 AI Development Environment</h1>
-        <p class="subtitle">Containerized development with AI-powered tools and services</p>
+        <h1>🚀 Dev Tools Server</h1>
+        <p class="subtitle">Local development services for AI-powered workflows</p>
 
         <div class="tools-grid">
             <a href="/docs-mcp/" class="tool-card">
                 <h2>📚 Docs MCP</h2>
-                <p>Index and search third-party library documentation. Ground AI responses in official docs from npm,
-                    PyPI, GitHub, and local files.</p>
+                <p>Index and search third-party library documentation. MCP server providing grounded documentation
+                    lookups for Copilot.</p>
                 <span class="status">✓ Running</span>
             </a>
 
             <a href="/ollama/" class="tool-card" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">
                 <h2>🤖 Ollama API</h2>
-                <p>Local LLM inference with GPU acceleration. Access models via REST API for embeddings and completions.
-                </p>
+                <p>Local LLM inference with GPU acceleration. Provides embeddings and completions for projects.</p>
                 <span class="status">✓ Running</span>
             </a>
 
             <a href="/sonarqube/" class="tool-card"
                 style="background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);">
                 <h2>🔍 SonarQube</h2>
-                <p>Local code quality and security analysis. Get immediate AI feedback on code issues without cloud
-                    limits.
-                </p>
+                <p>Code quality and security analysis platform. Provides analysis via MCP for all your projects.</p>
                 <span class="status">✓ Running</span>
             </a>
         </div>
 
         <div class="info-section">
-            <h3>📖 Quick Start</h3>
-            <p><strong>Indexing Documentation:</strong> Navigate to <a href="/docs-mcp/" style="color: #667eea;">Docs
-                    MCP</a> and click "Queue New Scrape Job" to index any documentation site.</p>
-            <p><strong>MCP Integration:</strong> All containers have access to these services via the
-                <code>dev-network</code>. Configuration is in <code>.vscode/mcp.json</code>.
-            </p>
-            <p><strong>Adding Services:</strong> Update <code>docker-compose.yml</code> and
-                <code>nginx/nginx.conf</code> to add new tool UIs.
+            <h3>📖 About This Infrastructure</h3>
+            <p>This stack provides shared AI services across all projects on this machine. Each service runs in an
+                isolated container with security hardening.</p>
+            <p><strong>MCP Servers:</strong> docs-mcp and sonarqube expose MCP interfaces. Configure connections in your
+                project's <code>.vscode/settings.json</code>.</p>
+            <p><strong>Network Access:</strong> Services communicate via <code>internal-network</code> (isolated) and
+                <code>dev-network</code> (project-accessible).
             </p>
         </div>
 
         <div class="info-section">
-            <h3>🔧 Service Endpoints</h3>
-            <p><strong>Docs MCP SSE:</strong> <code>http://docs-mcp:6280/sse</code> (internal) or
-                <code>http://localhost/docs-mcp/sse</code> (host)
+            <h3>🔧 Service Endpoints for Projects</h3>
+            <p><strong>Docs MCP SSE:</strong> <code>http://docs-mcp:6280/sse</code> (via Docker network) or
+                <code>http://localhost/docs-mcp/sse</code> (from host)
             </p>
-            <p><strong>Ollama API:</strong> <code>http://ollama:11434</code> (internal) or
-                <code>http://localhost/ollama</code> (host)
+            <p><strong>Ollama API:</strong> <code>http://ollama:11434</code> (via Docker network) or
+                <code>http://localhost/ollama</code> (from host)
             </p>
-            <p><strong>SonarQube:</strong> <code>http://sonarqube:9000</code> (internal) or
-                <code>http://localhost:9000</code> (host)
-            </p>
+            <p><strong>SonarQube Web:</strong> <code>http://localhost/sonarqube/</code> (from host)</p>
         </div>
 
         <div class="footer">

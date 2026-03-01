@@ -1,12 +1,22 @@
 FROM ollama/ollama:latest
 
-# Switch to root to install GPU tools
+# Ensure we're running as root to install GPU tools
 USER root
 
 # Install NVIDIA utilities (for nvidia-smi)
 RUN apt-get update && \
     apt-get install -y nvidia-utils-525 nvidia-cuda-toolkit && \
     rm -rf /var/lib/apt/lists/*
+
+# Create non-root user (1000:1000) for running Ollama
+RUN groupadd -g 1000 appuser && \
+    useradd -u 1000 -g 1000 -m -d /home/ollama appuser && \
+    mkdir -p /home/ollama && \
+    chown -R 1000:1000 /home/ollama
+
+# Switch to non-root user: ollama service requires specific user handling
+# For GPU support and compatibility with base image, use the explicit UID:GID
+USER 1000:1000
 
 # Expose Ollama port
 EXPOSE 11434

@@ -1,5 +1,3 @@
-version: "3.9"
-
 networks:
   dev-network:
     driver: bridge
@@ -19,9 +17,10 @@ services:
       context: .
       dockerfile: .devcontainer/Dockerfile.nvidia-ollama
     container_name: ollama-server
-    profiles: [human, agent-dev, agent-qa]
+    profiles: [human]
+    user: "1000:1000"
     volumes:
-      - ${OLLAMA_STORAGE_PATH}:/root/.ollama
+      - ${OLLAMA_STORAGE_PATH}:/home/ollama/.ollama
     environment:
       - OLLAMA_HOST=0.0.0.0:11434
       - OLLAMA_ORIGINS=*
@@ -50,11 +49,12 @@ services:
     build:
       context: .
       dockerfile: .devcontainer/Dockerfile.docs-mcp
-    profiles: [human, agent-dev, agent-qa]
+    profiles: [human]
     depends_on:
       - ollama
+    user: "1000:1000"
     volumes:
-      - docs-mcp-data:/root/.local/share/docs-mcp-server
+      - docs-mcp-data:/data
     environment:
       - OPENAI_API_BASE=http://ollama:11434/v1
       - DOCS_MCP_EMBEDDING_MODEL=openai:nomic-embed-text
@@ -76,7 +76,8 @@ services:
   nginx:
     container_name: ai-dev-nginx
     image: nginx:1.27-alpine
-    profiles: [human, agent-dev, agent-qa]
+    profiles: [human]
+    user: "101:101"
     depends_on:
       - docs-mcp
       - ollama
@@ -106,7 +107,8 @@ services:
   sonarqube-db:
     container_name: sonarqube-postgres
     image: postgres:15-alpine
-    profiles: [human, agent-dev, agent-qa]
+    profiles: [human]
+    user: "999:999"
     environment:
       - POSTGRES_USER=sonar
       - POSTGRES_PASSWORD=sonar
@@ -127,8 +129,8 @@ services:
 
   sonarqube:
     container_name: sonarqube-server
-    image: sonarqube:community
-    profiles: [human, agent-dev, agent-qa]
+    image: sonarqube:10-community
+    profiles: [human]
     depends_on:
       - sonarqube-db
     environment:
@@ -151,47 +153,3 @@ services:
         limits:
           memory: 2g
     restart: unless-stopped
-
-  agent-dev:
-    container_name: agent-dev-${WORKTREE_NAME:-default}
-    image: ubuntu:22.04
-    profiles: [agent-dev]
-    volumes:
-      - ${AGENT_WORKSPACE_PATH:-../sandbox}:/workspace
-    working_dir: /workspace
-    networks:
-      - dev-network
-      - internal-network
-    tty: true
-    stdin_open: true
-    security_opt:
-      - no-new-privileges:true
-    cap_drop:
-      - ALL
-    deploy:
-      resources:
-        limits:
-          memory: 1g
-    command: /bin/bash
-
-  agent-qa:
-    container_name: agent-qa-${WORKTREE_NAME:-default}
-    image: ubuntu:22.04
-    profiles: [agent-qa]
-    volumes:
-      - ${AGENT_WORKSPACE_PATH:-../sandbox}:/workspace:ro
-    working_dir: /workspace
-    networks:
-      - dev-network
-      - internal-network
-    tty: true
-    stdin_open: true
-    security_opt:
-      - no-new-privileges:true
-    cap_drop:
-      - ALL
-    deploy:
-      resources:
-        limits:
-          memory: 1g
-    command: /bin/bash
