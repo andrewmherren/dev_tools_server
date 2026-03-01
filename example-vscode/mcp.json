@@ -3,6 +3,7 @@
         "docs-mcp": {
             "type": "sse",
             "url": "http://docs.localhost/sse"
+            // Windows fallback if .localhost DNS fails: "http://localhost/docs/sse"
         },
         "sonarqube": {
             "type": "stdio",

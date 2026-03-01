@@ -9,7 +9,9 @@ This dev environment provides shared MCP (Model Context Protocol) servers for co
 **Purpose:** Index and search local documentation and code using embeddings
 
 **Type:** SSE (Server-Sent Events)  
-**URL:** `http://docs.localhost/sse` (from host) or `http://docs-mcp:6280/sse` (from containers)
+**URL (primary):** `http://docs.localhost/sse` (from host)  
+**URL (Windows fallback):** `http://localhost/docs/sse` (if `.localhost` DNS fails)  
+**URL (from containers):** `http://docs-mcp:6280/sse`
 
 **Capabilities:**
 - Full-text and semantic search across documentation
@@ -28,6 +30,19 @@ This dev environment provides shared MCP (Model Context Protocol) servers for co
     "docs-mcp": {
       "type": "sse",
       "url": "http://docs.localhost/sse"
+    }
+  }
+}
+```
+
+**Windows Compatibility Note:**  
+If you experience connection issues on Windows ("fetch failed" errors), try the fallback URL:
+```json
+{
+  "mcpServers": {
+    "docs-mcp": {
+      "type": "sse",
+      "url": "http://localhost/docs/sse"
     }
   }
 }

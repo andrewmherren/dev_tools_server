@@ -26,6 +26,40 @@ http:
         - web
       rule: Host(`docs.localhost`)
       service: docs-mcp-service
+      middlewares:
+        - sse-headers
+
+    # docs-mcp fallback route for Windows .localhost DNS issues
+    docs-mcp-path:
+      entryPoints:
+        - web
+      rule: Host(`localhost`) && PathPrefix(`/docs`)
+      service: docs-mcp-service
+      priority: 50
+      middlewares:
+        - sse-headers
+        - docs-strip-prefix
+
+    # docs-mcp messages endpoint (for POST messages in SSE protocol via /docs path)
+    docs-mcp-messages:
+      entryPoints:
+        - web
+      rule: Host(`localhost`) && PathPrefix(`/docs/messages`)
+      service: docs-mcp-service
+      priority: 55
+      middlewares:
+        - sse-headers
+        - docs-messages-strip-prefix
+
+    # docs-mcp messages endpoint (for POST messages returned by SSE handshake - bare /messages path)
+    docs-mcp-messages-root:
+      entryPoints:
+        - web
+      rule: Host(`localhost`) && PathPrefix(`/messages`)
+      service: docs-mcp-service
+      priority: 45
+      middlewares:
+        - sse-headers
 
     ollama:
       entryPoints:
@@ -68,6 +102,29 @@ http:
     #   rule: Host(`my-project.localhost`)
     #   service: my-project-service
 
+  middlewares:
+    # SSE-specific headers
+    sse-headers:
+      headers:
+        customResponseHeaders:
+          Cache-Control: "no-cache"
+          Connection: "keep-alive"
+          X-Accel-Buffering: "no" # Disable buffering if behind nginx proxy
+        customRequestHeaders:
+          X-Forwarded-Proto: "http"
+
+    # Strip /docs prefix for PathPrefix route
+    docs-strip-prefix:
+      stripPrefix:
+        prefixes:
+          - "/docs"
+
+    # Strip /docs prefix for messages endpoint
+    docs-messages-strip-prefix:
+      stripPrefix:
+        prefixes:
+          - "/docs"
+
   services:
     homepage-service:
       loadBalancer:
@@ -78,6 +135,8 @@ http:
       loadBalancer:
         servers:
           - url: http://docs-mcp:6280
+        responseForwarding:
+          flushInterval: 1ms # Flush SSE events immediately (1ms for streaming)
 
     ollama-service:
       loadBalancer:
