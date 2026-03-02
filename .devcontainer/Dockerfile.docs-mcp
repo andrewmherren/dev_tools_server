@@ -1,5 +1,27 @@
 FROM node:22-slim
 
+# Install system dependencies for Playwright Chromium
+RUN apt-get update && apt-get install -y \
+    libglib2.0-0 \
+    libnss3 \
+    libnspr4 \
+    libdbus-1-3 \
+    libatk1.0-0 \
+    libatk-bridge2.0-0 \
+    libcups2 \
+    libdrm2 \
+    libxkbcommon0 \
+    libxcomposite1 \
+    libxdamage1 \
+    libxfixes3 \
+    libxrandr2 \
+    libgbm1 \
+    libpango-1.0-0 \
+    libcairo2 \
+    libasound2 \
+    libatspi2.0-0 \
+    && rm -rf /var/lib/apt/lists/*
+
 # Install docs-mcp-server globally
 RUN npm install -g @arabold/docs-mcp-server
 
@@ -13,8 +35,11 @@ RUN (getent group 1000 || groupadd -g 1000 appuser) && \
 # Set working directory
 WORKDIR /data
 
-# docs-mcp-server reads from /data directory by default
-ENV DOCS_MCP_DATA_DIR=/data
+# Set docs-mcp-server storage path (storePath in config)
+ENV DOCS_MCP_APP_STORE_PATH=/data
+# Override scraper settings
+ENV DOCS_MCP_SCRAPER_MAX_PAGES=2000
+ENV DOCS_MCP_SCRAPER_DOCUMENT_MAX_SIZE=52428800
 
 # Default to Ollama for embeddings if no other provider specified
 # Users can override OPENAI_API_KEY in .env for other providers
@@ -32,4 +57,4 @@ EXPOSE 6280 6281
 
 # Default command: run MCP server on port 6280
 # Use the globally installed package instead of npx to avoid runtime downloads
-CMD ["docs-mcp-server", "--protocol", "http", "--host", "0.0.0.0", "--port", "6280"]
+CMD ["docs-mcp-server", "--protocol", "http", "--host", "0.0.0.0", "--port", "6280", "--store-path", "/data"]

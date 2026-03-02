@@ -17,6 +17,11 @@ docker-compose.override.yml
 .dockerignore
 *.log
 
+# ============================================
+# Service Data (Infrastructure Storage)
+# ============================================
+.server_data/
+
 
 # ============================================
 # Nginx & SSL Certificates
@@ -57,5 +62,4 @@ node_modules/
 __pycache__/
 *.pyc
 .pytest_cache/
-.server_data
 ./TODO/
