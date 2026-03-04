@@ -56,8 +56,14 @@ services:
     volumes:
       - ${DOCS_MCP_STORAGE_PATH}:/data
     environment:
-      - DOCS_MCP_APP_STORE_PATH=/data
       - OPENAI_API_BASE=http://ollama:11434/v1
+      - DOCS_MCP_SCRAPER_MAX_PAGES=2000
+      - DOCS_MCP_SCRAPER_DOCUMENT_MAX_SIZE=52428800
+      # If crashing during scraping, or if you need to reduce memory consumption
+      # from the allotted 3g to something lower like 2, you can reduce concurrency
+      # and sacrifice some performance.
+      - DOCS_MCP_SCRAPER_MAX_CONCURRENCY=3
+      - DOCS_MCP_SPLITTER_MAX_CHUNK_SIZE=5200
       - DOCS_MCP_EMBEDDING_MODEL=openai:nomic-embed-text
       - OPENAI_API_KEY=dummy
     tty: true
@@ -72,7 +78,7 @@ services:
     deploy:
       resources:
         limits:
-          memory: 512m
+          memory: 3g
     restart: unless-stopped
 
   traefik:

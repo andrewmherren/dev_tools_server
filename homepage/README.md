@@ -232,26 +232,6 @@ docker compose down
 docker compose down -v
 ```
 
-## Resource Requirements
-
-Total memory allocated: ~14.2GB
-- ollama: 8GB
-- sonarqube: 2GB
-- drone-agent: 1GB
-- postgres: 512MB
-- docs-mcp: 512MB
-- drone-server: 512MB
-- trivy: 512MB
-- traefik: 128MB
-- homepage: 32MB
-
-Total disk usage: Variable (depends on models, scan results, build artifacts)
-- Ollama models: 2-10GB per model
-- SonarQube data: Grows with analysis history
-- Trivy cache: ~500MB
-- Drone builds: Depends on pipeline artifacts
-- Docker volumes: ~2-3GB
-
 ## Troubleshooting
 
 ### Services won't start

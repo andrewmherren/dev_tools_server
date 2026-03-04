@@ -37,9 +37,6 @@ WORKDIR /data
 
 # Set docs-mcp-server storage path (storePath in config)
 ENV DOCS_MCP_APP_STORE_PATH=/data
-# Override scraper settings
-ENV DOCS_MCP_SCRAPER_MAX_PAGES=2000
-ENV DOCS_MCP_SCRAPER_DOCUMENT_MAX_SIZE=52428800
 
 # Default to Ollama for embeddings if no other provider specified
 # Users can override OPENAI_API_KEY in .env for other providers

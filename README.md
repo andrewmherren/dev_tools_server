@@ -40,18 +40,6 @@ docker compose up -d
 - **[Safe Integration Patterns](docs/git-safety.md)** — Best practices for consuming shared services
 - **[MCP Servers & Policy](docs/mcp-policy.md)** — Available servers and access control
 
-## Requirements
-
-- Docker Desktop with Docker Compose V2
-- NVIDIA GPU with Docker runtime (for Ollama)
-- ~14GB free RAM
-- 20GB+ free disk space
-
-## System Requirements
-
-- **Total Memory**: ~14.2GB
-- **Total Disk**: Variable (2-10GB per LLM model)
-
 See [Full Guide](homepage/README.md) for detailed resource breakdown.
 
 ## License
