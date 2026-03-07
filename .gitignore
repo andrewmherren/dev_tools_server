@@ -54,6 +54,10 @@ nginx/ssl/
 Thumbs.db
 desktop.ini
 
+# ============================================
+# Keep template files
+# ============================================
+!templates/**
 
 # ============================================
 # Local Development (if any)

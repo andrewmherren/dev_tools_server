@@ -1,0 +1,44 @@
+{
+  "servers": {
+    "docs-mcp": {
+      "type": "sse",
+      "url": "http://localhost/docs/sse"
+    },
+    "filesystem": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-filesystem", "."],
+      "description": "Direct filesystem access within workspace"
+    }
+  },
+  "disabledServers": {
+    "sonarqube": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "sonarqube-mcp-server"],
+      "env": {
+        "SONARQUBE_URL": "http://sonarqube.localhost",
+        "SONARQUBE_TOKEN": "${SONARQUBE_TOKEN}"
+      },
+      "description": "Code quality and security analysis (from dev_tools_server)"
+    },
+    "bifrostmcp": {
+      "type": "stdio",
+      "command": "docker",
+      "args": ["exec", "-i", "bifrostmcp", "node", "/app/mcp-server.js"],
+      "env": {
+        "WORKSPACE_PATH": "${workspacePaths[0]}"
+      },
+      "description": "LSP features: find_usages, goto_definition, list_symbols, get_hover (per-project)"
+    },
+    "github": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-github"],
+      "env": {
+        "GITHUB_TOKEN": "${GITHUB_TOKEN}"
+      },
+      "description": "GitHub API access: repos, issues, PRs, commits"
+    }
+  }
+}

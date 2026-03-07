@@ -1,0 +1,75 @@
+{
+  "editor.defaultFormatter": "esbenp.prettier-vscode",
+  "editor.formatOnSave": true,
+  "editor.rulers": [80, 120],
+  "editor.wordWrap": "bounded",
+  "editor.wordWrapColumn": 120,
+  "editor.codeActionsOnSave": {
+    "source.organizeImports": "afterDelay"
+  },
+  "[json]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[markdown]": {
+    "editor.wordWrap": "on",
+    "editor.wordWrapColumn": 100
+  },
+  "[dockercompose]": {
+    "editor.insertSpaces": true,
+    "editor.tabSize": 2,
+    "editor.autoIndent": "advanced",
+    "editor.quickSuggestions": {
+      "other": true,
+      "comments": false,
+      "strings": true
+    },
+    "editor.defaultFormatter": "redhat.vscode-yaml"
+  },
+  "[github-actions-workflow]": {
+    "editor.defaultFormatter": "redhat.vscode-yaml"
+  },
+  "files.exclude": {
+    "**/__pycache__": true,
+    "**/node_modules": true,
+    "**/dist": true,
+    "**/build": true,
+    "**/.pytest_cache": true,
+    "**/.venv": true,
+    "**/target": true,
+    "**/.DS_Store": true
+  },
+  "search.exclude": {
+    "**/__pycache__": true,
+    "**/node_modules": true,
+    "**/dist": true,
+    "**/build": true,
+    "**/.pytest_cache": true,
+    "**/.venv": true,
+    "**/target": true,
+    "**/vendor": true,
+    "**/.server_data": true
+  },
+  "files.associations": {
+    ".env.example": "plaintext",
+    ".env.local": "plaintext",
+    "Dockerfile.*": "dockerfile",
+    "docker-compose*.yml": "yaml"
+  },
+  "git.ignoreLimitWarning": true,
+  "git.autofetch": false,
+  "git.autorefresh": false,
+  "git.confirmSync": false,
+  "git.enableSmartCommit": true,
+  "git.openRepositoryInParentFolders": "always",
+  "git.repositoryScanMaxDepth": 3,
+  "scm.alwaysShowRepositories": true,
+  "terminal.integrated.defaultProfile.windows": "PowerShell",
+  "terminal.integrated.inheritEnv": true,
+  "debug.onTaskErrors": "debugAnyway",
+  "docker.showWarningOnUsingDefaultDockerPath": false,
+  "docker.extension.enableComposeLanguageServer": false,
+  "github.copilot.nextEditSuggestions.enabled": true,
+  "chat.viewSessions.orientation": "stacked",
+  "redhat.telemetry.enabled": false,
+  "aws.telemetry": false
+}

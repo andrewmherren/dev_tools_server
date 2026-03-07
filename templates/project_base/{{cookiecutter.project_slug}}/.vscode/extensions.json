@@ -1,0 +1,14 @@
+{
+  "recommendations": [
+    "github.copilot",
+    "github.copilot-chat",
+    "GitHub.copilot-labs",
+    "esbenp.prettier-vscode",
+    "ms-docker.docker",
+    "ms-vscode-remote.remote-containers",
+    "ms-vscode-remote.remote-ssh",
+    "eamodio.gitlens",
+    "redhat.vscode-yaml",
+    "streetsidesoftware.code-spell-checker"
+  ]
+}

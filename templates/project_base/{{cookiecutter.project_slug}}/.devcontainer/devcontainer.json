@@ -1,0 +1,26 @@
+{
+  "name": "{{cookiecutter.project_name}}",
+  "build": {
+    "dockerfile": "Dockerfile",
+    "context": "."
+  },
+  "remoteUser": "vscode",
+  "features": {
+    "ghcr.io/devcontainers/features/common-utils:2": {}
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "github.copilot",
+        "github.copilot-chat",
+        "esbenp.prettier-vscode",
+        "ms-docker.docker",
+        "ms-vscode-remote.remote-containers",
+        "eamodio.gitlens",
+        "redhat.vscode-yaml"
+      ]
+    }
+  },
+  "postCreateCommand": "git config --global --add safe.directory ${containerWorkspaceFolder}",
+  "forwardPorts": [3000, 8000, 8080]
+}
